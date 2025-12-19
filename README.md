@@ -2,6 +2,8 @@
 
 **PlasmaModding** is a modding framework intended to provide tools and infrastructure for creating mods for the game **Plasma**, developed by *Dry Licorice*.
 
+This project is built on **BepInEx**, which is required for the mod to function.
+
 ## Project Status
 
 ⚠️ **This project is currently under development and is not yet functional.**  
@@ -13,7 +15,7 @@ At its current stage, PlasmaModding focuses on extending the internal data syste
 
 - A framework to **define and register new custom data types** in Plasma  
 - Experimental control over the **image system** used by the game  
-- Compatibility with the **plasma_custom_nodes** project, allowing both projects to be used together
+- Compatibility with the **[Plasma-Custom-Nodes](https://github.com/Plasma-Modding/Plasma-Custom-Nodes)** project, allowing both projects to be used together
 
 ## Current Development Focus
 
