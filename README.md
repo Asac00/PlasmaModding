@@ -4,7 +4,7 @@
 
 This project is built on **BepInEx**, which is required for the mod to function.
 
-It now includes **[Plasma-Custom-Nodes](https://github.com/Plasma-Modding/Plasma-Custom-Nodes)** inside the project, providing integrated support for custom nodes.
+It includes **[Plasma-Custom-Nodes](https://github.com/Plasma-Modding/Plasma-Custom-Nodes)** inside the project, providing integrated support for custom nodes.
 
 ## Project Status
 
