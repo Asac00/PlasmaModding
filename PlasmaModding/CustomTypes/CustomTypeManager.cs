@@ -28,15 +28,10 @@ namespace PlasmaModding
         static bool awoken = false;
         static int lastEnumNumber = 200;
 
-        static Harmony harmony;
-
         public static void Awake()
         {
             if (awoken) return;
             awoken = true;
-
-            harmony = new Harmony("CustomTypeManager");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             if (Holder.sketchViewNodePreviewWidths != null)
             {
@@ -145,7 +140,7 @@ namespace PlasmaModding
                 DataExtension.DataHolder _holder = DataExtension.Get(data);
                 Dictionary<string, object> _valuesByName = _holder.valuesByName;
 
-                holder.valuesByName = _valuesByName;
+                holder.valuesByName = new Dictionary<string, object>(_valuesByName);
             }
         }
 
@@ -203,7 +198,7 @@ namespace PlasmaModding
         [HarmonyPatch(typeof(Data), "IsEqualTo")]
         private class IsEqualToPatch
         {
-            public static void PostFix(Data __instance, Data data, ref bool __result)
+            public static void Postfix(Data __instance, Data data, ref bool __result)
             {
                 if (customTypesByName.ContainsValue(__instance.type))
                 {
@@ -633,7 +628,7 @@ namespace PlasmaModding
 
                     if (!__instance.editors.ContainsKey(type))
                     {
-                        GameObject customEditorObject = UnityEngine.Object.Instantiate(customTypesProperties[typeName].editorObject, referenceTransform.parent);
+                        GameObject customEditorObject = GameObject.Instantiate(customTypesProperties[typeName].editorObject, referenceTransform.parent);
 
                         customEditorObject.name = typeName + " Editor";
 
@@ -889,7 +884,7 @@ namespace PlasmaModding
                         child.gameObject.SetActive(false);
                         Data.Types type = child.GetComponent<TypeButton>().type;
 
-                        if (type == dataType && holder.timeAfterNextPageAction > 2)
+                        if (type == dataType && holder.timeAfterNextPageAction > 1)
                         {
                             holder.currentPage = j / 6;
 
@@ -1099,7 +1094,7 @@ namespace PlasmaModding
         public class PropertyListHolder
         {
             public int currentPage;
-            public int timeAfterNextPageAction = 2;
+            public int timeAfterNextPageAction = 1;
             public bool alreadyClicked = false;
         }
 

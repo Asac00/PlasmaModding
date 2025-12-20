@@ -15,17 +15,9 @@ namespace PlasmaModding
 {
     public static class ModsMenu
     {
-        static Harmony harmony;
-
         private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("ModsMenu");
 
         private static GameObject modsMenuObject;
-
-        public static void ApplyModifications()
-        {
-            harmony = new Harmony("ModsMenu");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
-        }
 
         ///
         /// PauseMenu patch
