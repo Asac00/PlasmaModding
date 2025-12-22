@@ -4,6 +4,8 @@
 
 This project is built on **BepInEx**, which is required for the mod to function.
 
+It includes **[Plasma-Custom-Nodes](https://github.com/Plasma-Modding/Plasma-Custom-Nodes)** inside the project, providing integrated support for custom nodes.
+
 ## Project Status
 
 ⚠️ **This project is currently under development and is not yet functional.**  
@@ -13,9 +15,10 @@ APIs, features, and internal structures are subject to change.
 
 At its current stage, PlasmaModding focuses on extending the internal data systems of the game. The project currently provides:
 
+- **Custom nodes creation**  
+- **Custom data selection for node inputs**  
 - A framework to **define and register new custom data types** in Plasma  
 - Experimental control over the **image system** used by the game  
-- Compatibility with the **[Plasma-Custom-Nodes](https://github.com/Plasma-Modding/Plasma-Custom-Nodes)** project, allowing both projects to be used together
 
 ## Current Development Focus
 
@@ -31,6 +34,10 @@ In the future, PlasmaModding aims to support more advanced modding capabilities,
 
 - The ability to **add new objects to the game**
 - Further extension of Plasma’s internal systems to enable richer mod interactions
+
+## Important Notes About Harmony
+
+If you use Harmony patches in your own mods, **do not call `Harmony.PatchAll()` yourself**, as the project already manages Harmony patches internally. Calling `PatchAll()` multiple times can cause **duplicate patch execution** and unexpected behavior.
 
 ## Disclaimer
 
