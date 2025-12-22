@@ -865,7 +865,6 @@ namespace PlasmaModding
             {
                 PropertyListExtension.PropertyListHolder holder = PropertyListExtension.Get(__instance);
                 int currentPage = holder.currentPage;
-                holder.timeAfterNextPageAction += 1;
 
                 Agent agent = (Agent)AccessTools.Field(typeof(PropertyList), "_agent").GetValue(__instance);
                 PropertyRow selectedProperty = (PropertyRow)AccessTools.Field(typeof(PropertyList), "_selectedProperty").GetValue(__instance);
@@ -884,14 +883,18 @@ namespace PlasmaModding
                         child.gameObject.SetActive(false);
                         Data.Types type = child.GetComponent<TypeButton>().type;
 
-                        if (type == dataType && holder.timeAfterNextPageAction > 1)
+                        if (type == dataType)
                         {
-                            holder.currentPage = j / 6;
+                            if(!holder.hasPerformedNextPageAction)
+                            {
+                                holder.currentPage = j / 6;
 
-                            MethodInfo refreshTypeSelectorMethod = AccessTools.Method(typeof(PropertyList), "RefreshTypeSelector");
-                            refreshTypeSelectorMethod.Invoke(__instance, null);
+                                MethodInfo refreshTypeSelectorMethod = AccessTools.Method(typeof(PropertyList), "RefreshTypeSelector");
+                                refreshTypeSelectorMethod.Invoke(__instance, null);
 
-                            return false;
+                                return false;
+                            }
+                            holder.hasPerformedNextPageAction = false;
                         }
                     }
                     else
@@ -914,24 +917,20 @@ namespace PlasmaModding
                 if (typeButton.gameObject.name == nextPageButtonName)
                 {
                     PropertyListExtension.PropertyListHolder holder = PropertyListExtension.Get(__instance);
-                    if (!holder.alreadyClicked)
-                    {
-                        Agent agent = (Agent)AccessTools.Field(typeof(PropertyList), "_agent").GetValue(__instance);
-                        PropertyRow selectedProperty = (PropertyRow)AccessTools.Field(typeof(PropertyList), "_selectedProperty").GetValue(__instance);
 
-                        Data.Types currentDataType = agent.GetRuntimeProperty(selectedProperty.propertyIndex, true).GetDataType();
-                        GameObject currentEditorObject = new GameObject();
+                    Agent agent = (Agent)AccessTools.Field(typeof(PropertyList), "_agent").GetValue(__instance);
+                    PropertyRow selectedProperty = (PropertyRow)AccessTools.Field(typeof(PropertyList), "_selectedProperty").GetValue(__instance);
 
-                        holder.currentPage = (__instance.typeButtons.childCount - 2) / 6 > holder.currentPage ? holder.currentPage + 1 : 0;
-                        holder.timeAfterNextPageAction = 0;
-                        holder.alreadyClicked = true;
+                    Data.Types currentDataType = agent.GetRuntimeProperty(selectedProperty.propertyIndex, true).GetDataType();
+                    GameObject currentEditorObject = new GameObject();
 
-                        MethodInfo refreshTypeSelectorMethod = AccessTools.Method(typeof(PropertyList), "RefreshTypeSelector");
-                        refreshTypeSelectorMethod.Invoke(__instance, null);
+                    holder.currentPage = (__instance.typeButtons.childCount - 2) / 6 > holder.currentPage ? holder.currentPage + 1 : 0;
+                    holder.hasPerformedNextPageAction = true;
 
-                        return false;
-                    }
-                    holder.alreadyClicked = false;
+                    MethodInfo refreshTypeSelectorMethod = AccessTools.Method(typeof(PropertyList), "RefreshTypeSelector");
+                    refreshTypeSelectorMethod.Invoke(__instance, null);
+
+                    return false;
                 }
 
                 Data.Types type = typeButton.type;
@@ -1094,8 +1093,7 @@ namespace PlasmaModding
         public class PropertyListHolder
         {
             public int currentPage;
-            public int timeAfterNextPageAction = 1;
-            public bool alreadyClicked = false;
+            public bool hasPerformedNextPageAction = false;
         }
 
         public static PropertyListHolder Get(PropertyList instance) => table.GetOrCreateValue(instance);

@@ -35,11 +35,14 @@ namespace PlasmaModding
             AgentGestalt agentGestalt1 = CustomNodeManager.CreateGestalt(typeof(TestAgent), "Test", "Test", AgentCategoryEnum.Misc);
             CustomNodeManager.CreateCommandPort(agentGestalt1, "execute", "", 1);
             CustomNodeManager.CreatePropertyPort(agentGestalt1, "value", "The entry", TestMod.CustomDataTypeInit.type, true, CustomTypeManager.NewData<string>("New String", "test"), null);
-            CustomNodeManager.CreateOutputPort(agentGestalt1, "output", "The output", TestMod.CustomDataTypeInit.type, false, null, null);
+            CustomNodeManager.CreateOutputPort(agentGestalt1, "output", "The output", Data.Types.Text, false, null, null);
             CustomNodeManager.CreateNode(agentGestalt1, "aefc0112-85fd-4c59-b259-e54bad24ffce");
             AgentGestalt agentGestalt2 = CustomNodeManager.CreateGestalt(typeof(InjectAgent), "Inject", "Inject", AgentCategoryEnum.Misc);
             CustomNodeManager.CreateCommandPort(agentGestalt2, "execute", "", 1);
             CustomNodeManager.CreatePropertyPort(agentGestalt2, "value", "The entry", Data.Types.Text, true, new Data(""), null);
+            CustomNodeManager.CreatePropertyPort(agentGestalt2, "next", "Next", Data.Types.Text, true, new Data(""), null, false, true);
+            CustomNodeManager.CreateSelectionPort(agentGestalt2, "test", "", new List<string>() { "a", "b", "c" }, 0);
+            CustomNodeManager.CreateSelectionPort(agentGestalt2, "test2", "", new List<string>() { "e", "f", "g" }, 0);
             CustomNodeManager.CreateOutputPort(agentGestalt2, "output", "The output", TestMod.CustomDataTypeInit.type, false, null, null);
             CustomNodeManager.CreateNode(agentGestalt2, "12942e63-3636-4d5f-87ae-0e0254d1d156");
         }
@@ -149,7 +152,7 @@ namespace PlasmaModding
                     byte[] array = memoryStream.ToArray();
                 }
             }
-            base.WriteOutput("output", CustomTypeManager.NewData<string>("New String", "test"));
+            WriteOutput("output", new Data("test"));
         }
 
         // Token: 0x0400001F RID: 31
@@ -159,7 +162,7 @@ namespace PlasmaModding
         private int imageTextureIndex = 1;
     }
 
-    public class InjectAgent : CustomAgent
+    public class InjectAgent : CustomAgent, IDataSelectionProvider
     {
         // Token: 0x0600004A RID: 74 RVA: 0x00002EF4 File Offset: 0x000010F4
         [SketchNodePortOperation(1)]

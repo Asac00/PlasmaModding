@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using Visor;
+using static Rewired.Utils.Classes.Data.TypeWrapper;
 
 namespace PlasmaModding
 {
@@ -112,7 +113,7 @@ namespace PlasmaModding
             return port;
         }
 
-        public static AgentGestalt.Port CreatePropertyPort(AgentGestalt gestalt, string name, string description, Data.Types datatype = Data.Types.None, bool configurable = true, Data defaultData = null, string reference_name = null, bool expectsData = true)
+        public static AgentGestalt.Port CreatePropertyPort(AgentGestalt gestalt, string name, string description, Data.Types datatype = Data.Types.None, bool configurable = true, Data defaultData = null, string reference_name = null, bool expectsData = true, bool hidePort = false)
         {
             if (defaultData == null)
                 defaultData = new Data();
@@ -145,36 +146,40 @@ namespace PlasmaModding
             port.mappedProperty = property_dict_id;
             port.type = AgentGestalt.Port.Types.Property;
             port.expectsData = expectsData;
+            port.hidePort = hidePort;
 
             return port;
         }
 
-        public static Data CustomSelection(Type agentType, List<List<string>> selectionsChoices, int defaultId = 0)
+        public static AgentGestalt.Port CreateSelectionPort(AgentGestalt gestalt, string name, string description, List<string> choices, int defaultID = 0)
         {
             allProvidersRegistered = false;
 
-            Dictionary<int, Dictionary<int, string>> values = new Dictionary<int, Dictionary<int, string>>();
-
-            for (int i = 0; i < selectionsChoices.Count; i++)
+            Dictionary<int, string> value = new Dictionary<int, string>();
+            for (int j = 0; j < choices.Count; j++)
             {
-                List<string> choices = selectionsChoices[i];
-                Dictionary<int, string> value = new Dictionary<int, string>();
-                for (int j = 0; j < choices.Count; j++)
-                {
-                    value.Add(j, choices[j]);
-                }
-
-                values.Add(i, value);
+                value.Add(j, choices[j]);
             }
 
-            customProviders.Add(agentType, values);
+            if (!customProviders.ContainsKey(gestalt.agent))
+            {
+                customProviders.Add(gestalt.agent, new Dictionary<int, Dictionary<int, string>>());
+            }
+            int category = customProviders[gestalt.agent].Count;
+            customProviders[gestalt.agent].Add(category, value);
 
-            Data.Selection selection = new Data.Selection();
-            selection.provider = agentType;
-            selection.category = 0;
-            selection.id = defaultId;
 
-            return new Data(selection);
+            Data.Selection selection = new Data.Selection
+            {
+                provider = gestalt.agent,
+                category = category,
+                id = defaultID
+            };
+            Data selectionData = new Data(selection);
+
+            AgentGestalt.Port port = CreatePropertyPort(gestalt, name, description, Data.Types.Selection, true, selectionData, null, false, true);
+
+            return port;
         }
 
         private static int GetHighestKey(Dictionary<int, AgentGestalt.Port> l)
