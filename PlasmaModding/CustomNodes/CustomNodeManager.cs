@@ -316,8 +316,6 @@ namespace PlasmaModding
         {
             public static bool Prefix(ProcessorUINodeLibrary __instance)
             {
-                Logger.LogWarning("test");
-
                 // === Access private fields via reflection ===
                 var escapeManagerField = AccessTools.Field(typeof(ProcessorUINodeLibrary), "_escapeManager");
                 var nodeItemsField = AccessTools.Field(typeof(ProcessorUINodeLibrary), "_nodeItems");

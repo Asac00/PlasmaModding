@@ -2,13 +2,18 @@
 using BepInEx;
 using BepInEx.Logging;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using Visor;
 
 namespace PlasmaModding
@@ -16,20 +21,17 @@ namespace PlasmaModding
     [BepInPlugin("fr.example.testmod", "Test mod", "1.0.0")]
     public class TestMod : BaseUnityPlugin
     {
-        // Token: 0x06000044 RID: 68 RVA: 0x00002D81 File Offset: 0x00000F81
         public TestMod()
         {
             TestMod.CustomDataTypeInit.Init();
         }
 
-        // Token: 0x06000045 RID: 69 RVA: 0x00002D91 File Offset: 0x00000F91
         private void Awake()
         {
             base.Logger.LogInfo("TestMod has been loaded.");
             this.RegisterCustomNodes();
         }
 
-        // Token: 0x06000046 RID: 70 RVA: 0x00002DAC File Offset: 0x00000FAC
         private void RegisterCustomNodes()
         {
             AgentGestalt agentGestalt1 = CustomNodeManager.CreateGestalt(typeof(TestAgent), "Test", "Test", AgentCategoryEnum.Misc);
@@ -47,40 +49,31 @@ namespace PlasmaModding
             CustomNodeManager.CreateNode(agentGestalt2, "12942e63-3636-4d5f-87ae-0e0254d1d156");
         }
 
-        // Token: 0x0400001B RID: 27
         public const string pluginGuid = "fr.example.testmod";
 
-        // Token: 0x0400001C RID: 28
         public const string pluginName = "Test mod";
 
-        // Token: 0x0400001D RID: 29
         public const string pluginVersion = "1.0.0";
 
-        // Token: 0x0200002F RID: 47
         public static class CustomDataTypeInit
         {
-            // Token: 0x06000099 RID: 153 RVA: 0x00005409 File Offset: 0x00003609
             static CustomDataTypeInit()
             {
                 TestMod.CustomDataTypeInit.Logger.LogInfo("All custom types have been registered.");
             }
 
-            // Token: 0x0600009A RID: 154 RVA: 0x0000543F File Offset: 0x0000363F
             public static void Init()
             {
             }
 
-            // Token: 0x04000033 RID: 51
             private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("CustomDataTypeInit");
 
-            // Token: 0x04000034 RID: 52
             public static Data.Types type = CustomTypeManager.CreateType(typeof(NewStringType));
         }
     }
 
     public class NewStringType : CustomType<string>
     {
-        // Token: 0x0600004D RID: 77 RVA: 0x00002FC4 File Offset: 0x000011C4
         public NewStringType()
         {
             base.typeName = "New String";
@@ -92,31 +85,26 @@ namespace PlasmaModding
             base.editorObject = AssetBundlesManager.GetObjectFromAssetBundle<GameObject>("PlasmaModding.Resources.Prefabs.test_mod", "New String Editor");
         }
 
-        // Token: 0x0600004E RID: 78 RVA: 0x0000303C File Offset: 0x0000123C
         public override byte[] ToBytes(string value)
         {
             return Encoding.UTF8.GetBytes(value);
         }
 
-        // Token: 0x0600004F RID: 79 RVA: 0x0000305C File Offset: 0x0000125C
         public override string FromBytes(byte[] bytes)
         {
             return Encoding.UTF8.GetString(bytes, 0, bytes.Length);
         }
 
-        // Token: 0x06000050 RID: 80 RVA: 0x00003080 File Offset: 0x00001280
         public override string ToNiceString(string value)
         {
             return value;
         }
 
-        // Token: 0x06000051 RID: 81 RVA: 0x00003094 File Offset: 0x00001294
         public override string ToString(string value)
         {
             return value;
         }
 
-        // Token: 0x06000052 RID: 82 RVA: 0x000030A8 File Offset: 0x000012A8
         public static Sprite CreateTestSprite()
         {
             Texture2D texture2D = new Texture2D(1, 1);
@@ -128,13 +116,101 @@ namespace PlasmaModding
 
     public class NewStringEditor : DataEditor
     {
-        // Token: 0x04000021 RID: 33
         private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("NewStringEditor");
+
+        public override TMP_InputField mainTextField
+        {
+            get
+            {
+                return this._inputField;
+            }
+        }
+
+        private void Awake()
+        {
+            this._originalSize = this.processorUISize;
+        }
+
+        public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
+        {
+            //base.Setup(agent, propertyId, processorUI, canClose);
+            this._runtimeProperty = agent.GetRuntimeProperty(propertyId, true);
+            this._processorUI = processorUI;
+            this._inputField = Require.ComponentInChildren<TMP_InputField>(this, false, false);
+            this._inputField.onValueChanged.AddListener(new UnityAction<string>(this.HandleChange));
+            this._inputField.SetTextWithoutNotify(this._runtimeProperty.GetValueText());
+            if (!string.IsNullOrEmpty(this._inputField.text))
+            {
+                this._inputField.caretPosition = 0;
+            }
+            this._previousText = this._runtimeProperty.GetValueText();
+            if (this._processorUI != null)
+            {
+                // this.processorUISize = (this._runtimeProperty.definition.isScript ? new Vector2(this._originalSize.x * 3f, this._originalSize.y * 2f) : this._originalSize);
+                this.processorUISize = new Vector2(500, 1000);
+                this.highlightedText.SetActive(this._runtimeProperty.definition.isScript);
+                /*if (this._runtimeProperty.definition.isScript)
+                {
+                    this.scriptMapper.enabled = true;
+                    this.scriptMapper.ApplyColors(Holder.instance, false);
+                }
+                else
+                {
+                    this.normalMapper.enabled = true;
+                    this.normalMapper.ApplyColors(Holder.instance, false);
+                }*/
+                this._inputField.restoreOriginalTextOnEscape = !this._runtimeProperty.definition.isScript;
+                this._inputField.ActivateInputField();
+
+                //StartCoroutine(DelayedActivate());
+            }
+            this.showApplyMessage = (this._processorUI == null || !this._runtimeProperty.definition.isScript);
+            Logger.LogWarning(processorUISize.x);
+            Logger.LogWarning(processorUISize.y);
+        }
+
+        public override void CleanUp()
+        {
+            base.CleanUp();
+            this._inputField.onValueChanged.RemoveAllListeners();
+            this._inputField.onValidateInput = null;
+        }
+
+        private void HandleChange(string text)
+        {
+            if (!this._runtimeProperty.definition.isScript && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift) && (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter)))
+            {
+                this._inputField.SetTextWithoutNotify(this._previousText);
+                base.SetData(new Data(this._inputField.text), null);
+                this._inputField.DeactivateInputField(false);
+                EventSystem.current.SetSelectedGameObject(null);
+                if (this._processorUI != null)
+                {
+                    base.Apply();
+                }
+            }
+            else
+            {
+                this._previousText = text;
+                if (this._processorUI != null)
+                {
+                    base.SetData(new Data(this._inputField.text), null);
+                }
+            }
+            base.SetDirty(this._runtimeProperty.definition.isScript || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) || (!Input.GetKey(KeyCode.Return) && !Input.GetKey(KeyCode.KeypadEnter)));
+        }
+
+        public GameObject highlightedText;
+
+        private TMP_InputField _inputField;
+
+        private Vector2 _originalSize;
+
+        private string _previousText;
     }
 
     public class TestAgent : CustomAgent
     {
-        // Token: 0x0600004A RID: 74 RVA: 0x00002EF4 File Offset: 0x000010F4
         [SketchNodePortOperation(1)]
         public void Test(SketchNode sketchNode)
         {
@@ -155,16 +231,13 @@ namespace PlasmaModding
             WriteOutput("output", new Data("test"));
         }
 
-        // Token: 0x0400001F RID: 31
         private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("TestAgent");
 
-        // Token: 0x04000020 RID: 32
         private int imageTextureIndex = 1;
     }
 
     public class InjectAgent : CustomAgent, IDataSelectionProvider
     {
-        // Token: 0x0600004A RID: 74 RVA: 0x00002EF4 File Offset: 0x000010F4
         [SketchNodePortOperation(1)]
         public void Inject(SketchNode sketchNode)
         {

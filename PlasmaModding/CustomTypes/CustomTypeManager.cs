@@ -615,38 +615,7 @@ namespace PlasmaModding
         /// Patch de ProcessorUI
         /// 
 
-        [HarmonyPatch(typeof(ProcessorUI), "Setup")]
-        private class ProcessorUISetupPatch
-        {
-            public static void Postfix(ProcessorUI __instance)
-            {
-                Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
-
-                foreach (string typeName in customTypesByName.Keys)
-                {
-                    Data.Types type = customTypesByName[typeName];
-
-                    if (!__instance.editors.ContainsKey(type))
-                    {
-                        GameObject customEditorObject = GameObject.Instantiate(customTypesProperties[typeName].editorObject, referenceTransform.parent);
-
-                        customEditorObject.name = typeName + " Editor";
-
-                        Type editorType = customTypesProperties[typeName].editorType;
-                        DataEditor customEditor = (DataEditor)customEditorObject.AddComponent(editorType);
-
-                        customEditor.closeButton = customEditor.transform.parent.parent.Find("Header/Close Button").GetComponent<BetterButton>();
-                        customEditor.confirmMapper = customEditor.transform.parent.parent.Find("Apply Button/Confirm Message").GetComponent<UIColorMapperController>();
-                        customEditor.applyButton = customEditor.transform.parent.parent.Find("Apply Button").GetComponent<BetterButton>();
-
-                        customEditorObject.SetActive(false);
-
-                        __instance.editors.Add(type, customEditor);
-                    }
-                }
-            }
-        }
-
+        // Initialize a cutom Editor
         [HarmonyPatch(typeof(ProcessorUI), "ShowEditor")]
         private class ShowEditorPatch
         {
@@ -658,14 +627,30 @@ namespace PlasmaModding
                 AgentProperty agentProperty = agentToEdit.runtimeProperties[agentPropertyIdToEdit];
                 Data.Types type = agentProperty.GetDataType();
 
-                /*if (customTypesByName.ContainsValue(type) && !__instance.editors.ContainsKey(type))
+                if (customTypesByName.ContainsValue(type) && !__instance.editors.ContainsKey(type))
                 {
                     foreach (string typeName in customTypesByName.Keys)
                     {
                         if (type == customTypesByName[typeName])
                         {
+                            // Instantiate an editor to delete the color mapper components
                             Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
-                            GameObject customEditorObject = UnityEngine.Object.Instantiate(customTypesProperties[typeName].editorObject, referenceTransform.parent);
+
+                            GameObject editorGO = GameObject.Instantiate(
+                                __instance.editors[Data.Types.Text].gameObject,
+                                referenceTransform.parent
+                            );
+
+                            editorGO.SetActive(false);
+
+                            var mappers = editorGO.GetComponentsInChildren<UIBetterInputFieldColorMapper>(true);
+
+                            foreach (var mapper in mappers)
+                            {
+                                GameObject.DestroyImmediate(mapper);
+                            }
+
+                            GameObject customEditorObject = GameObject.Instantiate(editorGO, referenceTransform.parent);
 
                             customEditorObject.name = typeName + " Editor";
 
@@ -676,15 +661,32 @@ namespace PlasmaModding
                             customEditor.confirmMapper = customEditor.transform.parent.parent.Find("Apply Button/Confirm Message").GetComponent<UIColorMapperController>();
                             customEditor.applyButton = customEditor.transform.parent.parent.Find("Apply Button").GetComponent<BetterButton>();
 
+                            try
+                            {
+                                FieldInfo highlightedTextField = AccessTools.Field(editorType, "highlightedText");
+
+                                var highlightedText = customEditor.transform.Find("Normal Input Field/Text Area/Text/Highlight Text").gameObject;
+
+                                if (highlightedText == null)
+                                    throw new InvalidOperationException("highlightedText hasn't been foud in children.");
+
+                                highlightedTextField.SetValue(customEditor, highlightedText);
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.LogError(e.ToString());
+                            }   
+
                             __instance.editors.Add(type, customEditor);
 
                             break;
                         }
                     }
-                }*/
+                }
             }
         }
 
+        // Add the custom types to the type selection
         [HarmonyPatch(typeof(ProcessorUI), "ConfigureTypeSelector")]
         private class ConfigureTypeSelectorPatch
         {
@@ -941,7 +943,7 @@ namespace PlasmaModding
                     {
                         if (type == customTypesByName[typeName])
                         {
-                            Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
+                            /*Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
                             GameObject customEditorObject = UnityEngine.Object.Instantiate(customTypesProperties[typeName].editorObject, referenceTransform.parent);
 
                             customEditorObject.name = typeName + " Editor";
@@ -949,11 +951,51 @@ namespace PlasmaModding
                             Type editorType = customTypesProperties[typeName].editorType;
                             DataEditor customEditor = (DataEditor)customEditorObject.AddComponent(editorType);
                             
-                            customEditor.name = typeName + " Editor";
+                            customEditor.name = typeName + " Editor";*/
 
-                            PrintHierarchy(customEditorObject);
-                            // customEditor.confirmMapper = customEditor.transform.Find("Normal Input Field/Confirm Message").GetComponent<UIColorMapperController>();
-                            // AccessTools.Field(typeof(NewStringEditor), "normalMapper").SetValue(customEditor, customEditor.transform.Find("Normal Input Field").GetComponents<UIBetterInputFieldColorMapper>()[0]);
+                            // Instantiate an editor to delete the color mapper components
+                            Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
+
+                            GameObject editorGO = GameObject.Instantiate(
+                                __instance.editors[Data.Types.Text].gameObject,
+                                referenceTransform.parent
+                            );
+
+                            editorGO.SetActive(false);
+
+                            var mappers = editorGO.GetComponentsInChildren<UIBetterInputFieldColorMapper>(true);
+
+                            foreach (var mapper in mappers)
+                            {
+                                GameObject.DestroyImmediate(mapper);
+                            }
+
+                            GameObject customEditorObject = GameObject.Instantiate(editorGO, referenceTransform.parent);
+
+                            customEditorObject.name = typeName + " Editor";
+
+                            Type editorType = customTypesProperties[typeName].editorType;
+                            DataEditor customEditor = (DataEditor)customEditorObject.AddComponent(editorType);
+
+                            customEditor.closeButton = customEditor.transform.parent.parent.Find("Header/Close Button").GetComponent<BetterButton>();
+                            customEditor.confirmMapper = customEditor.transform.parent.parent.Find("Apply Button/Confirm Message").GetComponent<UIColorMapperController>();
+                            customEditor.applyButton = customEditor.transform.parent.parent.Find("Apply Button").GetComponent<BetterButton>();
+
+                            try
+                            {
+                                FieldInfo highlightedTextField = AccessTools.Field(editorType, "highlightedText");
+
+                                var highlightedText = customEditor.transform.Find("Normal Input Field/Text Area/Text/Highlight Text").gameObject;
+
+                                if (highlightedText == null)
+                                    throw new InvalidOperationException("highlightedText hasn't been foud in children.");
+
+                                highlightedTextField.SetValue(customEditor, highlightedText);
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.LogError(e.ToString());
+                            }
 
                             __instance.editors.Add(type, customEditorObject);
 
