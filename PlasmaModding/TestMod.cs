@@ -1,6 +1,7 @@
 ﻿using Behavior;
 using BepInEx;
 using BepInEx.Logging;
+using PlasmaModding.CustomTypes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -114,7 +115,7 @@ namespace PlasmaModding
         }
     }
 
-    public class NewStringEditor : DataEditor
+    /*public class NewStringEditor : DataEditor
     {
         private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("NewStringEditor");
 
@@ -133,9 +134,9 @@ namespace PlasmaModding
 
         public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
         {
-            //base.Setup(agent, propertyId, processorUI, canClose);
-            this._runtimeProperty = agent.GetRuntimeProperty(propertyId, true);
-            this._processorUI = processorUI;
+            base.Setup(agent, propertyId, processorUI, canClose);
+            //this._runtimeProperty = agent.GetRuntimeProperty(propertyId, true);
+            //this._processorUI = processorUI;
             this._inputField = Require.ComponentInChildren<TMP_InputField>(this, false, false);
             this._inputField.onValueChanged.AddListener(new UnityAction<string>(this.HandleChange));
             this._inputField.SetTextWithoutNotify(this._runtimeProperty.GetValueText());
@@ -148,7 +149,7 @@ namespace PlasmaModding
             {
                 // this.processorUISize = (this._runtimeProperty.definition.isScript ? new Vector2(this._originalSize.x * 3f, this._originalSize.y * 2f) : this._originalSize);
                 this.processorUISize = new Vector2(500, 1000);
-                this.highlightedText.SetActive(this._runtimeProperty.definition.isScript);
+                // this.highlightedText.SetActive(this._runtimeProperty.definition.isScript);
                 /*if (this._runtimeProperty.definition.isScript)
                 {
                     this.scriptMapper.enabled = true;
@@ -158,15 +159,13 @@ namespace PlasmaModding
                 {
                     this.normalMapper.enabled = true;
                     this.normalMapper.ApplyColors(Holder.instance, false);
-                }*/
+                }
                 this._inputField.restoreOriginalTextOnEscape = !this._runtimeProperty.definition.isScript;
                 this._inputField.ActivateInputField();
 
                 //StartCoroutine(DelayedActivate());
             }
             this.showApplyMessage = (this._processorUI == null || !this._runtimeProperty.definition.isScript);
-            Logger.LogWarning(processorUISize.x);
-            Logger.LogWarning(processorUISize.y);
         }
 
         public override void CleanUp()
@@ -181,7 +180,7 @@ namespace PlasmaModding
             if (!this._runtimeProperty.definition.isScript && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift) && (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter)))
             {
                 this._inputField.SetTextWithoutNotify(this._previousText);
-                base.SetData(new Data(this._inputField.text), null);
+                base.SetData(CustomTypeManager.NewData<string>("New String", _inputField.text), null);
                 this._inputField.DeactivateInputField(false);
                 EventSystem.current.SetSelectedGameObject(null);
                 if (this._processorUI != null)
@@ -194,7 +193,7 @@ namespace PlasmaModding
                 this._previousText = text;
                 if (this._processorUI != null)
                 {
-                    base.SetData(new Data(this._inputField.text), null);
+                    base.SetData(CustomTypeManager.NewData<string>("New String", _inputField.text), null);
                 }
             }
             base.SetDirty(this._runtimeProperty.definition.isScript || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) || (!Input.GetKey(KeyCode.Return) && !Input.GetKey(KeyCode.KeypadEnter)));
@@ -207,6 +206,36 @@ namespace PlasmaModding
         private Vector2 _originalSize;
 
         private string _previousText;
+    }*/
+
+    public class NewStringEditor : CustomEditor<string>
+    {
+        public NewStringEditor()
+        {
+            editorSize = new Vector2(500, 1000);
+            typeName = "New String";
+        }
+
+        public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
+        {
+            //inputField = GetOrCreateInputField("inputField", 450, 750, 0, 0, 56);
+            // inputField.onValueChanged.AddListener(OnValueChange);
+            Toggle toggle = GetOrCreateToggle("toggle", 225, 375, "test", 42);
+            toggle.onValueChanged.AddListener(OnValueChanged);
+            base.Setup(agent, propertyId, processorUI, canClose);
+        }
+
+        private void OnValueChanged(bool isOn)
+        {
+            outputValue = isOn ? "test" : "";
+            HandleChange();
+        }
+
+        public void OnValueChange(string text)
+        {
+            outputValue = text;
+            HandleChange();
+        }
     }
 
     public class TestAgent : CustomAgent

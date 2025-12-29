@@ -594,6 +594,7 @@ namespace PlasmaModding
         /// Patch de ProcessorUIVariableManagerItem
         /// 
 
+        // Show the value of a variable with a custom type
         [HarmonyPatch(typeof(ProcessorUIVariableManagerItem), "BuildPreview")]
         private class ProcessorUIVariableManagerItemBuildPreviewPatch
         {
@@ -604,9 +605,8 @@ namespace PlasmaModding
 
                 if (customTypesByName.ContainsValue(type))
                 {
-                    GameObject textPreview = (GameObject)AccessTools.Field(typeof(ProcessorUIVariableManagerItem), "textPreview").GetValue(__instance);
-                    textPreview.SetActive(true);
-                    textPreview.GetComponent<TextMeshPro>().text = agentProperty.GetValue().ToNiceString(false, 2);
+                    __instance.textPreview.SetActive(true);
+                    __instance.textPreview.GetComponentInChildren<TextMeshProUGUI>().text = agentProperty.GetValue().ToNiceString(false, 2);
                 }
             }
         }
@@ -636,7 +636,7 @@ namespace PlasmaModding
                             // Instantiate an editor to delete the color mapper components
                             Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
 
-                            GameObject editorGO = GameObject.Instantiate(
+                            /*GameObject editorGO = GameObject.Instantiate(
                                 __instance.editors[Data.Types.Text].gameObject,
                                 referenceTransform.parent
                             );
@@ -648,9 +648,11 @@ namespace PlasmaModding
                             foreach (var mapper in mappers)
                             {
                                 GameObject.DestroyImmediate(mapper);
-                            }
+                            }*/
 
-                            GameObject customEditorObject = GameObject.Instantiate(editorGO, referenceTransform.parent);
+                            GameObject customEditorPrefab = AssetBundlesManager.GetObjectFromAssetBundle<GameObject>("PlasmaModding.Resources.Prefabs.plasma_modding", "Custom Editor");
+
+                            GameObject customEditorObject = GameObject.Instantiate(customEditorPrefab, referenceTransform.parent);
 
                             customEditorObject.name = typeName + " Editor";
 
@@ -661,7 +663,7 @@ namespace PlasmaModding
                             customEditor.confirmMapper = customEditor.transform.parent.parent.Find("Apply Button/Confirm Message").GetComponent<UIColorMapperController>();
                             customEditor.applyButton = customEditor.transform.parent.parent.Find("Apply Button").GetComponent<BetterButton>();
 
-                            try
+                            /*try
                             {
                                 FieldInfo highlightedTextField = AccessTools.Field(editorType, "highlightedText");
 
@@ -675,7 +677,7 @@ namespace PlasmaModding
                             catch (Exception e)
                             {
                                 Logger.LogError(e.ToString());
-                            }   
+                            }*/ 
 
                             __instance.editors.Add(type, customEditor);
 
@@ -911,6 +913,7 @@ namespace PlasmaModding
             }
         }
 
+        // Manage the click on a type of Data in the properties screen
         [HarmonyPatch(typeof(PropertyList), "OnTypeClicked")]
         private class OnTypeClickedPatch
         {
@@ -976,10 +979,6 @@ namespace PlasmaModding
 
                             Type editorType = customTypesProperties[typeName].editorType;
                             DataEditor customEditor = (DataEditor)customEditorObject.AddComponent(editorType);
-
-                            customEditor.closeButton = customEditor.transform.parent.parent.Find("Header/Close Button").GetComponent<BetterButton>();
-                            customEditor.confirmMapper = customEditor.transform.parent.parent.Find("Apply Button/Confirm Message").GetComponent<UIColorMapperController>();
-                            customEditor.applyButton = customEditor.transform.parent.parent.Find("Apply Button").GetComponent<BetterButton>();
 
                             try
                             {

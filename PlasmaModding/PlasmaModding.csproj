@@ -97,6 +97,7 @@
   <ItemGroup>
     <Compile Include="CustomNodes\CustomAgent.cs" />
     <Compile Include="CustomNodes\CustomNodeManager.cs" />
+    <Compile Include="CustomTypes\CustomEditor.cs" />
     <Compile Include="CustomTypes\CustomType.cs" />
     <Compile Include="CustomTypes\CustomTypeManager.cs" />
     <Compile Include="ImagesManager.cs" />
@@ -112,10 +113,10 @@
     <EmbeddedResource Include="Resources\Next.png" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Prefabs\plasma_modding" />
+    <EmbeddedResource Include="Resources\Prefabs\test_mod" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Prefabs\test_mod" />
+    <EmbeddedResource Include="Resources\Prefabs\plasma_modding" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
