@@ -18,8 +18,28 @@ namespace PlasmaModding.CustomTypes
     {
         private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("CustomEditor");
 
+        public virtual void BuildUI()
+        {
+            return;
+        }
+
+        public void AddToggleListener<TValue>(string name, Action<TValue> callback, UnityEvent<TValue> @event)
+        {
+            @event.AddListener(value =>
+            {
+                callback(value);
+                // SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
+                // togglesStates[_agentGUID][name] = toggles[name].isOn;
+                SetDirty(true); // automatically mark the editor as dirty
+            });
+        }
+
         public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
         {
+            _agentGUID = agent.agentId.guid;
+
+            BuildUI();
+
             base.Setup(agent, propertyId, processorUI, canClose);
 
             foreach (TMP_InputField inputField in inputFields.Values)
@@ -35,6 +55,12 @@ namespace PlasmaModding.CustomTypes
                     inputField.ActivateInputField();
                 }
             }
+
+            foreach (Toggle toggle in toggles.Values)
+            {
+                toggle.onValueChanged.Invoke(toggle.isOn);
+            }
+
             processorUISize = editorSize;
             showApplyMessage = (_processorUI == null || !_runtimeProperty.definition.isScript);
         }
@@ -49,7 +75,55 @@ namespace PlasmaModding.CustomTypes
             }
         }
 
-        public void HandleChange()
+        protected virtual void Update()
+        {
+            if(!applyButtonListenerChanged)
+            {
+                applyButton.onClick.AddListener(Validate);
+                applyButtonListenerChanged = true;
+            }
+
+            if (!isDirty)
+                return;
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                Validate();
+            }
+        }
+
+        protected void Validate()
+        {
+            // Push the output value
+            SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
+
+            // Deactivate input fields
+            foreach (TMP_InputField inputField in inputFields.Values)
+            {
+                inputField.DeactivateInputField(false);
+            }
+
+            // Register toggles states
+            foreach(string name in toggles.Keys)
+            {
+                togglesStates[_agentGUID][name] = toggles[name].isOn;
+            }
+
+            // Close / apply
+            if (_processorUI != null)
+            {
+                Apply();
+            }
+
+            // Clean state
+            SetDirty(false);
+
+            // Unfocus everything
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+
+
+        /*public void HandleChange()
         {
             if (!_runtimeProperty.definition.isScript && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift) && (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter)))
             {
@@ -72,7 +146,7 @@ namespace PlasmaModding.CustomTypes
                 }
             }
             SetDirty(_runtimeProperty.definition.isScript || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) || (!Input.GetKey(KeyCode.Return) && !Input.GetKey(KeyCode.KeypadEnter)));
-        }
+        }*/
 
         public TMP_InputField GetOrCreateInputField(string name, int width, int height, int posX, int posY, int fontSize, string placeholder = "", TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard)
         {
@@ -103,6 +177,8 @@ namespace PlasmaModding.CustomTypes
             }
 
             newInputField.contentType = contentType;
+
+            newInputField.onSubmit.RemoveAllListeners(); // Remove the action of Enter on the input field
 
             inputFields[name] = newInputField;
             
@@ -165,10 +241,21 @@ namespace PlasmaModding.CustomTypes
             return newHint;
         }
 
-        public Toggle GetOrCreateToggle(string name, int posX, int posY, string text, int fontSize)
+        public Toggle GetOrCreateToggle(string name, int posX, int posY, string text, int fontSize, bool defaultState = false)
         {
             if (toggles.ContainsKey(name))
             {
+                // Get the registered state
+                if (togglesStates.ContainsKey(_agentGUID))
+                {
+                    toggles[name].isOn = togglesStates[_agentGUID][name];
+                }
+                else
+                {
+                    toggles[name].isOn = defaultState;
+                    togglesStates[_agentGUID] = new Dictionary<string, bool>() { { name, defaultState } };
+                }
+
                 return toggles[name];
             }
 
@@ -187,17 +274,34 @@ namespace PlasmaModding.CustomTypes
 
             Toggle newToggle = newToggleGO.GetComponent<Toggle>();
 
+            newToggle.isOn = defaultState;
+
+            newToggle.navigation = new Navigation { mode = Navigation.Mode.None }; // Remove the action of Enter on the input field
+
             toggles[name] = newToggle;
+            if(!togglesStates.ContainsKey(_agentGUID))
+            {
+                togglesStates[_agentGUID] = new Dictionary<string, bool>();
+            }
+            togglesStates[_agentGUID][name] = defaultState;
 
             newToggleGO.SetActive(true);
 
             return newToggle;
         }
 
+        private int _agentGUID;
+
+        private bool applyButtonListenerChanged = false;
+
         private Dictionary<string, TMP_InputField> inputFields = new Dictionary<string, TMP_InputField>();
+
         private Dictionary<string, TMP_Text> labels = new Dictionary<string, TMP_Text>();
+
         private Dictionary<string, TMP_Text> hints = new Dictionary<string, TMP_Text>();
+
         private Dictionary<string, Toggle> toggles = new Dictionary<string, Toggle>();
+        private Dictionary<int, Dictionary<string, bool>> togglesStates = new Dictionary<int, Dictionary<string, bool>>();
 
         public Vector2 editorSize;
 

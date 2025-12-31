@@ -216,25 +216,22 @@ namespace PlasmaModding
             typeName = "New String";
         }
 
-        public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
+        public override void BuildUI()
         {
-            //inputField = GetOrCreateInputField("inputField", 450, 750, 0, 0, 56);
-            // inputField.onValueChanged.AddListener(OnValueChange);
-            Toggle toggle = GetOrCreateToggle("toggle", 225, 375, "test", 42);
-            toggle.onValueChanged.AddListener(OnValueChanged);
-            base.Setup(agent, propertyId, processorUI, canClose);
+            // TMP_InputField inputField = GetOrCreateInputField("inputField", 450, 750, 0, 0, 56);
+            // AddListener(inputField, OnFieldChange, inputField.onValueChanged);
+            Toggle toggle = GetOrCreateToggle("toggle", 225, 375, "test", 42, true);
+            AddToggleListener("toggle", OnToggleChange, toggle.onValueChanged);
         }
 
-        private void OnValueChanged(bool isOn)
+        private void OnToggleChange(bool isOn)
         {
             outputValue = isOn ? "test" : "";
-            HandleChange();
         }
 
-        public void OnValueChange(string text)
+        public void OnFieldChange(string text)
         {
             outputValue = text;
-            HandleChange();
         }
     }
 
