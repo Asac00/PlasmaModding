@@ -1,18 +1,21 @@
-﻿using HarmonyLib;
-using System.Reflection;
-using UnityEngine;
-using UnityEngine.UI;
-using Behavior;
-using System.Linq;
-using System;
-using System.Collections.Generic;
-using Sirenix.OdinInspector;
-using System.Runtime.CompilerServices;
+﻿using Behavior;
 using BepInEx.Logging;
-using Visor;
-using TMPro;
-using TheraBytes.BetterUi;
+using HarmonyLib;
+using PlasmaModding.CustomTypes;
+using Sirenix.OdinInspector;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using TheraBytes.BetterUi;
+using TMPro;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.UI;
+using Visor;
 using static UnityEngine.ImageConversion;
 
 namespace PlasmaModding
@@ -22,9 +25,8 @@ namespace PlasmaModding
         private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("CustomTypeManager");
 
         public static readonly Dictionary<string, ICustomType> customTypesProperties = new Dictionary<string, ICustomType>();
-        public static readonly Dictionary<string, Data.Types> customTypesByName = new Dictionary<string, Data.Types>();
+        private static readonly Dictionary<string, Data.Types> customTypesByName = new Dictionary<string, Data.Types>();
 
-        static bool loadedTypes = false;
         static bool awoken = false;
         static int lastEnumNumber = 200;
 
@@ -35,13 +37,13 @@ namespace PlasmaModding
 
             if (Holder.sketchViewNodePreviewWidths != null)
             {
-                loadedTypes = true;
-
                 Logger.LogInfo($"{customTypesByName.Count} custom types have successfully been loaded.");
             }
         }
 
         public class LateTypeRegistrationException : Exception { }
+
+        // This method allows to create a custom Data type
         public static Data.Types CreateType(Type type)
         {
             Data.Types customType = Data.Types.None;
@@ -86,18 +88,17 @@ namespace PlasmaModding
             }
 
             Awake();
-            /*if (loadedTypes)
-                throw new LateTypeRegistrationException();*/
 
             return customType;
         }
 
         /// 
-        ///  Patch de Data
+        ///  Data Patch
         /// 
 
+        // Add the custom types to the valid types
         [HarmonyPatch]
-        private class DataValidTypesPatch
+        private class Data_ValidTypesPatch
         {
             static MethodBase TargetMethod()
             {
@@ -113,8 +114,9 @@ namespace PlasmaModding
             }
         }
 
+        // Initialize the default values for the custom types
         [HarmonyPatch(typeof(Data), MethodType.Constructor)]
-        private class DataPatch
+        private class Data_ConstructorPatch
         {
             public static void Postfix(Data __instance)
             {
@@ -122,6 +124,7 @@ namespace PlasmaModding
             }
         }
 
+        // It is the equivalent of Data(T value) for the custom types
         public static Data NewData<T>(string typeName, T value)
         {
             var data = new Data();
@@ -130,8 +133,9 @@ namespace PlasmaModding
             return data;
         }
 
+        // Copy the values of a Data to anothe
         [HarmonyPatch(typeof(Data), "Copy")]
-        private class CopyPatch
+        private class Data_CopyPatch
         {
             public static void Postfix(Data __instance, Data data)
             {
@@ -144,8 +148,9 @@ namespace PlasmaModding
             }
         }
 
+        // Encode the values of a Data in binary
         [HarmonyPatch(typeof(Data), "Encode")]
-        private class EncodePatch
+        private class Data_EncodePatch
         {
             public static void Postfix(Data __instance, ref byte[] __result)
             {
@@ -167,10 +172,11 @@ namespace PlasmaModding
             }
         }
 
+        // The custom types values are used in the method Data(byte[] bytes)
         [HarmonyPatch(typeof(Data))]
         [HarmonyPatch(MethodType.Constructor)]
         [HarmonyPatch(new Type[] { typeof(byte[]) })]
-        public class DataBytesConstructorPatch
+        public class Data_BytesConstructorPatch
         {
             public static void Postfix(Data __instance, byte[] bytes)
             {
@@ -195,8 +201,9 @@ namespace PlasmaModding
             }
         }
 
+        // Check if two instances of Data are equal
         [HarmonyPatch(typeof(Data), "IsEqualTo")]
-        private class IsEqualToPatch
+        private class Data_IsEqualToPatch
         {
             public static void Postfix(Data __instance, Data data, ref bool __result)
             {
@@ -219,8 +226,9 @@ namespace PlasmaModding
             }
         }
 
+        // Write the name of a Data type
         [HarmonyPatch(typeof(Data), "TypeToString")]
-        private class TypeToStringPatch
+        private class Data_TypeToStringPatch
         {
             public static bool Prefix(Data.Types type, ref string __result)
             {
@@ -236,8 +244,9 @@ namespace PlasmaModding
             }
         }
 
+        // Transform a Data into a string that is easily readable for a player
         [HarmonyPatch(typeof(Data), "ToNiceString")]
-        private class ToNiceStringPatch
+        private class Data_ToNiceStringPatch
         {
             public static bool Prefix(Data __instance, bool includeType, ref string __result)
             {
@@ -264,8 +273,9 @@ namespace PlasmaModding
             }
         }
 
+        // Transform a Data into a string that contains its whole description
         [HarmonyPatch(typeof(Data), "ToString")]
-        private class ToStringPatch
+        private class Data_ToStringPatch
         {
             public static bool Prefix(Data __instance, ref string __result)
             {
@@ -332,11 +342,12 @@ namespace PlasmaModding
         }
 
         ///
-        /// Patch de AgentProperty
+        /// AgentProperty Patch
         /// 
 
+        // Change the data type of a Data
         [HarmonyPatch(typeof(AgentProperty), "SetDataType")]
-        private class SetDataTypePatch
+        private class AgentProperty_SetDataTypePatch
         {
             public static bool Prefix(AgentProperty __instance, Data.Types type)
             {
@@ -361,6 +372,7 @@ namespace PlasmaModding
             }
         }
 
+        // Get the value in agentProperty when its type is a custom one
         public static T GetValueCustomType<T>(AgentProperty agentProperty, string typeName)
         {
             Data data = agentProperty.GetValue();
@@ -591,7 +603,7 @@ namespace PlasmaModding
         }
 
         ///
-        /// Patch de ProcessorUIVariableManagerItem
+        /// ProcessorUIVariableManagerItem Patch
         /// 
 
         // Show the value of a variable with a custom type
@@ -612,12 +624,12 @@ namespace PlasmaModding
         }
 
         ///
-        /// Patch de ProcessorUI
+        /// ProcessorUI Patch
         /// 
 
         // Initialize a cutom Editor
         [HarmonyPatch(typeof(ProcessorUI), "ShowEditor")]
-        private class ShowEditorPatch
+        private class ProcessorUI_ShowEditorPatch
         {
             public static void Prefix(ProcessorUI __instance)
             {
@@ -636,20 +648,6 @@ namespace PlasmaModding
                             // Instantiate an editor to delete the color mapper components
                             Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
 
-                            /*GameObject editorGO = GameObject.Instantiate(
-                                __instance.editors[Data.Types.Text].gameObject,
-                                referenceTransform.parent
-                            );
-
-                            editorGO.SetActive(false);
-
-                            var mappers = editorGO.GetComponentsInChildren<UIBetterInputFieldColorMapper>(true);
-
-                            foreach (var mapper in mappers)
-                            {
-                                GameObject.DestroyImmediate(mapper);
-                            }*/
-
                             GameObject customEditorPrefab = AssetBundlesManager.GetObjectFromAssetBundle<GameObject>("PlasmaModding.Resources.Prefabs.plasma_modding", "Custom Editor");
 
                             GameObject customEditorObject = GameObject.Instantiate(customEditorPrefab, referenceTransform.parent);
@@ -662,22 +660,6 @@ namespace PlasmaModding
                             customEditor.closeButton = customEditor.transform.parent.parent.Find("Header/Close Button").GetComponent<BetterButton>();
                             customEditor.confirmMapper = customEditor.transform.parent.parent.Find("Apply Button/Confirm Message").GetComponent<UIColorMapperController>();
                             customEditor.applyButton = customEditor.transform.parent.parent.Find("Apply Button").GetComponent<BetterButton>();
-
-                            /*try
-                            {
-                                FieldInfo highlightedTextField = AccessTools.Field(editorType, "highlightedText");
-
-                                var highlightedText = customEditor.transform.Find("Normal Input Field/Text Area/Text/Highlight Text").gameObject;
-
-                                if (highlightedText == null)
-                                    throw new InvalidOperationException("highlightedText hasn't been foud in children.");
-
-                                highlightedTextField.SetValue(customEditor, highlightedText);
-                            }
-                            catch (Exception e)
-                            {
-                                Logger.LogError(e.ToString());
-                            }*/ 
 
                             __instance.editors.Add(type, customEditor);
 
@@ -739,7 +721,7 @@ namespace PlasmaModding
         }
 
         /// 
-        /// Patch de PropertyList
+        /// PropertyList Patch
         /// 
 
         [HarmonyPatch(typeof(PropertyList), "OnPropertyClicked")]
@@ -1026,7 +1008,7 @@ namespace PlasmaModding
         }
 
         /// 
-        /// Patch de TypeButton
+        /// TypeButton Patch
         /// 
 
         [HarmonyPatch(typeof(TypeButton), "Select")]

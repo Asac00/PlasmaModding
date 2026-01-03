@@ -16,6 +16,7 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Visor;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PlasmaModding
 {
@@ -60,7 +61,6 @@ namespace PlasmaModding
         {
             static CustomDataTypeInit()
             {
-                TestMod.CustomDataTypeInit.Logger.LogInfo("All custom types have been registered.");
             }
 
             public static void Init()
@@ -77,13 +77,13 @@ namespace PlasmaModding
     {
         public NewStringType()
         {
-            base.typeName = "New String";
-            base.description = "A simple custom string type.";
-            base.defaultValue = "";
-            base.icon = NewStringType.CreateTestSprite();
-            base.sketchIcon = NewStringType.CreateTestSprite();
-            base.editorType = typeof(NewStringEditor);
-            base.editorObject = AssetBundlesManager.GetObjectFromAssetBundle<GameObject>("PlasmaModding.Resources.Prefabs.test_mod", "New String Editor");
+            typeName = "New String";
+            description = "A simple custom string type.";
+            defaultValue = "";
+            icon = NewStringType.CreateTestSprite();
+            sketchIcon = NewStringType.CreateTestSprite();
+            editorType = typeof(NewStringEditor);
+            editorObject = AssetBundlesManager.GetObjectFromAssetBundle<GameObject>("PlasmaModding.Resources.Prefabs.test_mod", "New String Editor");
         }
 
         public override byte[] ToBytes(string value)
@@ -115,99 +115,6 @@ namespace PlasmaModding
         }
     }
 
-    /*public class NewStringEditor : DataEditor
-    {
-        private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("NewStringEditor");
-
-        public override TMP_InputField mainTextField
-        {
-            get
-            {
-                return this._inputField;
-            }
-        }
-
-        private void Awake()
-        {
-            this._originalSize = this.processorUISize;
-        }
-
-        public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
-        {
-            base.Setup(agent, propertyId, processorUI, canClose);
-            //this._runtimeProperty = agent.GetRuntimeProperty(propertyId, true);
-            //this._processorUI = processorUI;
-            this._inputField = Require.ComponentInChildren<TMP_InputField>(this, false, false);
-            this._inputField.onValueChanged.AddListener(new UnityAction<string>(this.HandleChange));
-            this._inputField.SetTextWithoutNotify(this._runtimeProperty.GetValueText());
-            if (!string.IsNullOrEmpty(this._inputField.text))
-            {
-                this._inputField.caretPosition = 0;
-            }
-            this._previousText = this._runtimeProperty.GetValueText();
-            if (this._processorUI != null)
-            {
-                // this.processorUISize = (this._runtimeProperty.definition.isScript ? new Vector2(this._originalSize.x * 3f, this._originalSize.y * 2f) : this._originalSize);
-                this.processorUISize = new Vector2(500, 1000);
-                // this.highlightedText.SetActive(this._runtimeProperty.definition.isScript);
-                /*if (this._runtimeProperty.definition.isScript)
-                {
-                    this.scriptMapper.enabled = true;
-                    this.scriptMapper.ApplyColors(Holder.instance, false);
-                }
-                else
-                {
-                    this.normalMapper.enabled = true;
-                    this.normalMapper.ApplyColors(Holder.instance, false);
-                }
-                this._inputField.restoreOriginalTextOnEscape = !this._runtimeProperty.definition.isScript;
-                this._inputField.ActivateInputField();
-
-                //StartCoroutine(DelayedActivate());
-            }
-            this.showApplyMessage = (this._processorUI == null || !this._runtimeProperty.definition.isScript);
-        }
-
-        public override void CleanUp()
-        {
-            base.CleanUp();
-            this._inputField.onValueChanged.RemoveAllListeners();
-            this._inputField.onValidateInput = null;
-        }
-
-        private void HandleChange(string text)
-        {
-            if (!this._runtimeProperty.definition.isScript && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift) && (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter)))
-            {
-                this._inputField.SetTextWithoutNotify(this._previousText);
-                base.SetData(CustomTypeManager.NewData<string>("New String", _inputField.text), null);
-                this._inputField.DeactivateInputField(false);
-                EventSystem.current.SetSelectedGameObject(null);
-                if (this._processorUI != null)
-                {
-                    base.Apply();
-                }
-            }
-            else
-            {
-                this._previousText = text;
-                if (this._processorUI != null)
-                {
-                    base.SetData(CustomTypeManager.NewData<string>("New String", _inputField.text), null);
-                }
-            }
-            base.SetDirty(this._runtimeProperty.definition.isScript || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) || (!Input.GetKey(KeyCode.Return) && !Input.GetKey(KeyCode.KeypadEnter)));
-        }
-
-        public GameObject highlightedText;
-
-        private TMP_InputField _inputField;
-
-        private Vector2 _originalSize;
-
-        private string _previousText;
-    }*/
-
     public class NewStringEditor : CustomEditor<string>
     {
         public NewStringEditor()
@@ -218,21 +125,49 @@ namespace PlasmaModding
 
         public override void BuildUI()
         {
-            // TMP_InputField inputField = GetOrCreateInputField("inputField", 450, 750, 0, 0, 56);
-            // AddListener(inputField, OnFieldChange, inputField.onValueChanged);
-            Toggle toggle = GetOrCreateToggle("toggle", 225, 375, "test", 42, true);
-            AddToggleListener("toggle", OnToggleChange, toggle.onValueChanged);
+            TMP_InputField inputField = GetOrCreateInputField("inputField", 450, 700, 0, 50, 56, "", TMP_InputField.ContentType.IntegerNumber);
+            AddListener(OnFieldChange, inputField.onValueChanged);
+            Toggle toggle = GetOrCreateToggle("toggle", 225, 0, "test", 42);
+            AddListener(OnToggleChange, toggle.onValueChanged);
+        }
+
+        public override void ApplyValueToUI(string value)
+        {
+            if (value == "")
+            {
+                ChangeToggleState("toggle", true);
+                ChangeInputFieldContent("inputField", "0");
+                return;
+            }
+
+            int colonIndex = value.IndexOf(":");
+            string firstPart = value.Substring(0, colonIndex).Trim();
+            string secondPart = value.Substring(colonIndex + 1).Trim();
+
+            ChangeToggleState("toggle", firstPart == "test");
+            ChangeInputFieldContent("inputField", secondPart);
         }
 
         private void OnToggleChange(bool isOn)
         {
-            outputValue = isOn ? "test" : "";
+            _isOn = isOn;
+            Output();
         }
 
         public void OnFieldChange(string text)
         {
-            outputValue = text;
+            _text = text;
+            Output();
         }
+
+        private void Output()
+        {
+            correctOutputValue = _text != "";
+            outputValue = (_isOn ? "test" : "not test") + " : " + _text;
+        }
+
+        bool _isOn = true;
+        string _text;
     }
 
     public class TestAgent : CustomAgent

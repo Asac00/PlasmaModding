@@ -3,12 +3,10 @@ using BepInEx.Logging;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using Visor;
-using static Rewired.Utils.Classes.Data.TypeWrapper;
 
 namespace PlasmaModding
 {
@@ -124,7 +122,7 @@ namespace PlasmaModding
             {
                 property_dict_id = GetHighestKey(gestalt.ports) + 1;
             }
-            catch (Exception e) { }
+            catch (Exception) { }
 
 
             property.position = port.position;

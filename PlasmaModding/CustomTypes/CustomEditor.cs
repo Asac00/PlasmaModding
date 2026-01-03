@@ -1,16 +1,12 @@
 ﻿using BepInEx.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Visor;
-using static AgentGestalt;
 
 namespace PlasmaModding.CustomTypes
 {
@@ -23,46 +19,66 @@ namespace PlasmaModding.CustomTypes
             return;
         }
 
-        public void AddToggleListener<TValue>(string name, Action<TValue> callback, UnityEvent<TValue> @event)
+        public virtual void ApplyValueToUI(T value)
+        {
+            return;
+        }
+
+        public void AddListener<TValue>(Action<TValue> callback, UnityEvent<TValue> @event)
         {
             @event.AddListener(value =>
             {
                 callback(value);
-                // SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
-                // togglesStates[_agentGUID][name] = toggles[name].isOn;
-                SetDirty(true); // automatically mark the editor as dirty
+
+                if(correctOutputValue)
+                {
+                    // Push the output value
+                    SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
+                }
+
+                applyButton.interactable = correctOutputValue;
+
+                SetDirty(correctOutputValue);
             });
         }
 
         public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
         {
-            _agentGUID = agent.agentId.guid;
-
             BuildUI();
 
             base.Setup(agent, propertyId, processorUI, canClose);
 
             foreach (TMP_InputField inputField in inputFields.Values)
             {
-                inputField.SetTextWithoutNotify(_runtimeProperty.GetValueText());
                 if (!string.IsNullOrEmpty(inputField.text))
                 {
                     inputField.caretPosition = 0;
                 }
                 if (_processorUI != null)
                 {
-                    inputField.restoreOriginalTextOnEscape = !_runtimeProperty.definition.isScript;
                     inputField.ActivateInputField();
                 }
             }
 
-            foreach (Toggle toggle in toggles.Values)
-            {
-                toggle.onValueChanged.Invoke(toggle.isOn);
-            }
-
             processorUISize = editorSize;
             showApplyMessage = (_processorUI == null || !_runtimeProperty.definition.isScript);
+
+            applyButton.navigation = new Navigation { mode = Navigation.Mode.None };
+
+            outputValue = (T)CustomTypeManager.customTypesProperties[typeName].defaultValue;
+
+            if(_runtimeProperty != null)
+            {
+                outputValue = CustomTypeManager.GetValueCustomType<T>(_runtimeProperty, typeName);
+            }
+
+            ApplyValueToUI(outputValue);
+
+            SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
+
+            applyButton.onClick.AddListener(() => Validate());
+
+            SetDirty(true);
         }
 
         public override void CleanUp()
@@ -73,80 +89,47 @@ namespace PlasmaModding.CustomTypes
                 inputField.onValueChanged.RemoveAllListeners();
                 inputField.onValidateInput = null;
             }
+            foreach (Toggle toggle in toggles.Values)
+            {
+                toggle.onValueChanged.RemoveAllListeners();
+            }
         }
 
         protected virtual void Update()
         {
-            if(!applyButtonListenerChanged)
-            {
-                applyButton.onClick.AddListener(Validate);
-                applyButtonListenerChanged = true;
-            }
-
             if (!isDirty)
                 return;
 
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
-                Validate();
+                Validate(true);
             }
         }
 
-        protected void Validate()
+        public void Validate(bool callOnClick = false)
         {
-            // Push the output value
-            SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
-
-            // Deactivate input fields
-            foreach (TMP_InputField inputField in inputFields.Values)
+            if (isDirty)
             {
-                inputField.DeactivateInputField(false);
-            }
-
-            // Register toggles states
-            foreach(string name in toggles.Keys)
-            {
-                togglesStates[_agentGUID][name] = toggles[name].isOn;
-            }
-
-            // Close / apply
-            if (_processorUI != null)
-            {
-                Apply();
-            }
-
-            // Clean state
-            SetDirty(false);
-
-            // Unfocus everything
-            EventSystem.current.SetSelectedGameObject(null);
-        }
-
-
-        /*public void HandleChange()
-        {
-            if (!_runtimeProperty.definition.isScript && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift) && (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter)))
-            {
-                SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
+                // Deactivate input fields
                 foreach (TMP_InputField inputField in inputFields.Values)
                 {
                     inputField.DeactivateInputField(false);
                 }
-                EventSystem.current.SetSelectedGameObject(null);
-                if (_processorUI != null)
+
+                applyButton.onClick.RemoveAllListeners();
+
+                if (_processorUI != null && callOnClick)
                 {
                     Apply();
                 }
+
+                // Clean state
+                SetDirty(false);
+
+                // Unfocus everything
+                EventSystem.current.SetSelectedGameObject(null);
             }
-            else
-            {
-                if (_processorUI != null)
-                {
-                    SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
-                }
-            }
-            SetDirty(_runtimeProperty.definition.isScript || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) || (!Input.GetKey(KeyCode.Return) && !Input.GetKey(KeyCode.KeypadEnter)));
-        }*/
+        }
 
         public TMP_InputField GetOrCreateInputField(string name, int width, int height, int posX, int posY, int fontSize, string placeholder = "", TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard)
         {
@@ -187,6 +170,11 @@ namespace PlasmaModding.CustomTypes
             return newInputField;
         }
 
+        public void ChangeInputFieldContent(string name, string content)
+        {
+            inputFields[name].SetTextWithoutNotify(content);
+        }
+
         public TMP_Text GetOrCreateLabel(string name, int posX, int posY, string text, int fontSize)
         {
             if (labels.ContainsKey(name))
@@ -212,6 +200,11 @@ namespace PlasmaModding.CustomTypes
             newLabelGO.SetActive(true);
 
             return newLabel;
+        }
+
+        public void ChangeLabelText(string name, string text)
+        {
+            labels[name].text = text;
         }
 
         public TMP_Text GetOrCreateHints(string name, int posX, int posY, string text, int fontSize)
@@ -241,21 +234,15 @@ namespace PlasmaModding.CustomTypes
             return newHint;
         }
 
-        public Toggle GetOrCreateToggle(string name, int posX, int posY, string text, int fontSize, bool defaultState = false)
+        public void ChangeHintText(string name,  string text)
+        {
+            hints[name].text = text;
+        }
+
+        public Toggle GetOrCreateToggle(string name, int posX, int posY, string label, int fontSize)
         {
             if (toggles.ContainsKey(name))
             {
-                // Get the registered state
-                if (togglesStates.ContainsKey(_agentGUID))
-                {
-                    toggles[name].isOn = togglesStates[_agentGUID][name];
-                }
-                else
-                {
-                    toggles[name].isOn = defaultState;
-                    togglesStates[_agentGUID] = new Dictionary<string, bool>() { { name, defaultState } };
-                }
-
                 return toggles[name];
             }
 
@@ -270,29 +257,103 @@ namespace PlasmaModding.CustomTypes
             Text newToggleLabel = newToggleGO.GetComponentInChildren<Text>();
             newToggleLabel.fontSize = fontSize;
 
-            newToggleLabel.text = text;
+            newToggleLabel.text = label;
 
             Toggle newToggle = newToggleGO.GetComponent<Toggle>();
-
-            newToggle.isOn = defaultState;
 
             newToggle.navigation = new Navigation { mode = Navigation.Mode.None }; // Remove the action of Enter on the input field
 
             toggles[name] = newToggle;
-            if(!togglesStates.ContainsKey(_agentGUID))
-            {
-                togglesStates[_agentGUID] = new Dictionary<string, bool>();
-            }
-            togglesStates[_agentGUID][name] = defaultState;
 
             newToggleGO.SetActive(true);
 
             return newToggle;
         }
 
-        private int _agentGUID;
+        public void ChangeToggleLabel(string name, string label)
+        {
+            Text toggleLabel = toggles[name].GetComponentInChildren<Text>();
+            toggleLabel.text = label;
+        }
 
-        private bool applyButtonListenerChanged = false;
+        public void ChangeToggleState(string name, bool isOn)
+        {
+            toggles[name].SetIsOnWithoutNotify(isOn);
+        }
+
+        public Image GetOrCreateImage(string name, int width, int height, int posX, int posY, Sprite sprite, Color color)
+        {
+            if (images.ContainsKey(name))
+            {
+                return images[name];
+            }
+
+            GameObject referenceImageGO = transform.Find("Image").gameObject;
+
+            GameObject newImageGO = GameObject.Instantiate(referenceImageGO, referenceImageGO.transform.parent);
+            newImageGO.name = name;
+
+            RectTransform rt = newImageGO.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(width, height);
+            rt.anchoredPosition = new Vector2(posX, posY);
+
+            Image newImage = newImageGO.GetComponent<Image>();
+            newImage.sprite = sprite;
+            newImage.color = color;
+
+            images[name] = newImage;
+
+            newImageGO.SetActive(true);
+
+            return newImage;
+        }
+
+        public void ChangeImageSprite(string name, Sprite sprite)
+        {
+            images[name].sprite = sprite;
+        }
+
+        public void ChangeImageColor(string name, Color color)
+        {
+            images[name].color = color;
+        }
+
+        // A height of 20 is recommended 
+        public Slider GetOrCreateSlider(string name, int width, int height, int posX, int posY, string label, int fontSize)
+        {
+            if (sliders.ContainsKey(name))
+            {
+                return sliders[name];
+            }
+
+            GameObject referenceSliderGO = transform.Find("Slider").gameObject;
+
+            GameObject newSliderGO = GameObject.Instantiate(referenceSliderGO, referenceSliderGO.transform.parent);
+            newSliderGO.name = name;
+
+            RectTransform rt = newSliderGO.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(width, height);
+            rt.anchoredPosition = new Vector2(posX, posY);
+
+            Text newSliderLabel = newSliderGO.GetComponentInChildren<Text>();
+            newSliderLabel.fontSize = fontSize;
+
+            newSliderLabel.text = label;
+
+            Slider newSlider = newSliderGO.GetComponent<Slider>();
+
+            sliders[name] = newSlider;
+
+            newSliderGO.SetActive(true);
+
+            return newSlider;
+        }
+
+        public void ChangeSliderLabel(string name, string label)
+        {
+            Text sliderLabel = sliders[name].GetComponentInChildren<Text>();
+            sliderLabel.text = label;
+        }
 
         private Dictionary<string, TMP_InputField> inputFields = new Dictionary<string, TMP_InputField>();
 
@@ -301,12 +362,17 @@ namespace PlasmaModding.CustomTypes
         private Dictionary<string, TMP_Text> hints = new Dictionary<string, TMP_Text>();
 
         private Dictionary<string, Toggle> toggles = new Dictionary<string, Toggle>();
-        private Dictionary<int, Dictionary<string, bool>> togglesStates = new Dictionary<int, Dictionary<string, bool>>();
+
+        private Dictionary<string, Image> images = new Dictionary<string, Image>();
+
+        private Dictionary<string, Slider> sliders = new Dictionary<string, Slider>();
 
         public Vector2 editorSize;
 
         public string typeName;
 
         public T outputValue;
+
+        public bool correctOutputValue = true;
     }
 }
