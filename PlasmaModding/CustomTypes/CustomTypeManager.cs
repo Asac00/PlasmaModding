@@ -645,7 +645,6 @@ namespace PlasmaModding
                     {
                         if (type == customTypesByName[typeName])
                         {
-                            // Instantiate an editor to delete the color mapper components
                             Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
 
                             GameObject customEditorPrefab = AssetBundlesManager.GetObjectFromAssetBundle<GameObject>("PlasmaModding.Resources.Prefabs.plasma_modding", "Custom Editor");

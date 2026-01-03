@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
+using TubeRendererExamples;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -125,49 +126,29 @@ namespace PlasmaModding
 
         public override void BuildUI()
         {
-            TMP_InputField inputField = GetOrCreateInputField("inputField", 450, 700, 0, 50, 56, "", TMP_InputField.ContentType.IntegerNumber);
-            AddListener(OnFieldChange, inputField.onValueChanged);
-            Toggle toggle = GetOrCreateToggle("toggle", 225, 0, "test", 42);
-            AddListener(OnToggleChange, toggle.onValueChanged);
+            TMP_Text result = GetOrCreateLabel("result", 0, 400, "", 42);
+            Button addButton = GetOrCreateButton("add", 200, 100, 0, 200, "ADD", 42);
+            AddListener(Add, addButton.onClick);
+            Button resetButton = GetOrCreateButton("reset", 200, 100, 250, 200, "RESET", 42);
+            AddListener(Reset, resetButton.onClick);
         }
 
         public override void ApplyValueToUI(string value)
         {
-            if (value == "")
-            {
-                ChangeToggleState("toggle", true);
-                ChangeInputFieldContent("inputField", "0");
-                return;
-            }
-
-            int colonIndex = value.IndexOf(":");
-            string firstPart = value.Substring(0, colonIndex).Trim();
-            string secondPart = value.Substring(colonIndex + 1).Trim();
-
-            ChangeToggleState("toggle", firstPart == "test");
-            ChangeInputFieldContent("inputField", secondPart);
+            ChangeLabelText("result", value);
         }
 
-        private void OnToggleChange(bool isOn)
+        private void Add()
         {
-            _isOn = isOn;
-            Output();
+            outputValue += "A";
+            ChangeLabelText("result", outputValue);
         }
 
-        public void OnFieldChange(string text)
+        private void Reset()
         {
-            _text = text;
-            Output();
+            outputValue = "";
+            ChangeLabelText("result", outputValue);
         }
-
-        private void Output()
-        {
-            correctOutputValue = _text != "";
-            outputValue = (_isOn ? "test" : "not test") + " : " + _text;
-        }
-
-        bool _isOn = true;
-        string _text;
     }
 
     public class TestAgent : CustomAgent
