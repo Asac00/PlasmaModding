@@ -16,7 +16,8 @@ APIs, features, and internal structures are subject to change.
 At its current stage, PlasmaModding focuses on extending the internal data systems of the game. The project currently provides:
 
 - **Custom nodes creation**  
-- A framework to **define and register new custom data types** in Plasma  
+- A framework to **define and register new custom data types** in Plasma
+- A **tool to create custom editors** for these new data types  
 - Experimental control over the **image system** used by the game  
 
 ## Current Development Focus
