@@ -120,16 +120,22 @@ namespace PlasmaModding
     {
         public NewStringEditor()
         {
-            editorSize = new Vector2(500, 1000);
+            editorSize = new Vector2(700, 1200);
             typeName = "New String";
+            needConfirmation = false;
         }
 
         public override void BuildUI()
         {
-            TMP_Text result = GetOrCreateLabel("result", 0, 400, "", 42);
-            Button addButton = GetOrCreateButton("add", 200, 100, 0, 200, "ADD", 42);
+            TMP_Text result = GetOrCreateLabel("result", "");
+            PlaceRelativeToEditorCenter("result", Vector2.zero);
+
+            Button addButton = GetOrCreateButton("add", "ADD", 200, 100);
+            PlaceRelativeTo("add", "result", RelativePlacement.Below, 100);
             AddListener(Add, addButton.onClick);
-            Button resetButton = GetOrCreateButton("reset", 200, 100, 250, 200, "RESET", 42);
+
+            Button resetButton = GetOrCreateButton("reset", "RESET", 200, 100);
+            PlaceRelativeTo("reset", "add", RelativePlacement.Below, 100);
             AddListener(Reset, resetButton.onClick);
         }
 

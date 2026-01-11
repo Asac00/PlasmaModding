@@ -724,7 +724,7 @@ namespace PlasmaModding
         /// 
 
         [HarmonyPatch(typeof(PropertyList), "OnPropertyClicked")]
-        private class OnPropertyClickedPatch
+        private class PropertyList_OnPropertyClickedPatch
         {
             public static void Prefix(PropertyList __instance, PropertyRow property)
             {
@@ -740,18 +740,15 @@ namespace PlasmaModding
                         if (type == customTypesByName[typeName])
                         {
                             Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
-                            GameObject customEditorObject = UnityEngine.Object.Instantiate(customTypesProperties[typeName].editorObject, referenceTransform.parent);
+
+                            GameObject customEditorPrefab = AssetBundlesManager.GetObjectFromAssetBundle<GameObject>("PlasmaModding.Resources.Prefabs.plasma_modding", "Custom Editor");
+
+                            GameObject customEditorObject = GameObject.Instantiate(customEditorPrefab, referenceTransform.parent);
 
                             customEditorObject.name = typeName + " Editor";
 
                             Type editorType = customTypesProperties[typeName].editorType;
                             DataEditor customEditor = (DataEditor)customEditorObject.AddComponent(editorType);
-                            
-                            customEditor.name = typeName + " Editor";
-
-                            customEditor.confirmMapper = customEditor.transform.Find("Normal Input Field/Confirm Message").GetComponent<UIColorMapperController>();
-
-                            // AccessTools.Field(typeof(NewStringEditor), "normalMapper").SetValue(customEditor, customEditor.transform.Find("Normal Input Field").GetComponents<UIBetterInputFieldColorMapper>()[0]);
 
                             __instance.editors.Add(type, customEditorObject);
 
@@ -927,55 +924,16 @@ namespace PlasmaModding
                     {
                         if (type == customTypesByName[typeName])
                         {
-                            /*Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
-                            GameObject customEditorObject = UnityEngine.Object.Instantiate(customTypesProperties[typeName].editorObject, referenceTransform.parent);
-
-                            customEditorObject.name = typeName + " Editor";
-
-                            Type editorType = customTypesProperties[typeName].editorType;
-                            DataEditor customEditor = (DataEditor)customEditorObject.AddComponent(editorType);
-                            
-                            customEditor.name = typeName + " Editor";*/
-
-                            // Instantiate an editor to delete the color mapper components
                             Transform referenceTransform = __instance.editors[Data.Types.Text].transform;
 
-                            GameObject editorGO = GameObject.Instantiate(
-                                __instance.editors[Data.Types.Text].gameObject,
-                                referenceTransform.parent
-                            );
+                            GameObject customEditorPrefab = AssetBundlesManager.GetObjectFromAssetBundle<GameObject>("PlasmaModding.Resources.Prefabs.plasma_modding", "Custom Editor");
 
-                            editorGO.SetActive(false);
-
-                            var mappers = editorGO.GetComponentsInChildren<UIBetterInputFieldColorMapper>(true);
-
-                            foreach (var mapper in mappers)
-                            {
-                                GameObject.DestroyImmediate(mapper);
-                            }
-
-                            GameObject customEditorObject = GameObject.Instantiate(editorGO, referenceTransform.parent);
+                            GameObject customEditorObject = GameObject.Instantiate(customEditorPrefab, referenceTransform.parent);
 
                             customEditorObject.name = typeName + " Editor";
 
                             Type editorType = customTypesProperties[typeName].editorType;
                             DataEditor customEditor = (DataEditor)customEditorObject.AddComponent(editorType);
-
-                            try
-                            {
-                                FieldInfo highlightedTextField = AccessTools.Field(editorType, "highlightedText");
-
-                                var highlightedText = customEditor.transform.Find("Normal Input Field/Text Area/Text/Highlight Text").gameObject;
-
-                                if (highlightedText == null)
-                                    throw new InvalidOperationException("highlightedText hasn't been foud in children.");
-
-                                highlightedTextField.SetValue(customEditor, highlightedText);
-                            }
-                            catch (Exception e)
-                            {
-                                Logger.LogError(e.ToString());
-                            }
 
                             __instance.editors.Add(type, customEditorObject);
 

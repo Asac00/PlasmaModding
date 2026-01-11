@@ -8,7 +8,6 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Visor;
-using static Rewired.InputMapper;
 
 namespace PlasmaModding.CustomTypes
 {
@@ -26,58 +25,14 @@ namespace PlasmaModding.CustomTypes
             return;
         }
 
-        public void AddListener<TValue>(Action<TValue> callback, UnityEvent<TValue> @event)
-        {
-            @event.AddListener(value =>
-            {
-                callback(value);
-
-                if(correctOutputValue)
-                {
-                    // Push the output value
-                    SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
-                }
-
-                applyButton.interactable = correctOutputValue;
-
-                SetDirty(correctOutputValue);
-            });
-        }
-
-        public void RemoveListener<TValue>(Action<TValue> callback, UnityEvent<TValue> @event)
-        {
-            @event.RemoveListener(value =>
-            {
-                callback(value);
-            });
-        }
-
-        // Add and remove listeners for buttons
-        public void AddListener(Action callback, UnityEvent @event)
-        {
-            @event.AddListener(() =>
-            {
-                callback();
-
-                if (correctOutputValue)
-                    SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
-
-                applyButton.interactable = correctOutputValue;
-
-                SetDirty(correctOutputValue);
-            });
-        }
-
-        public void RemoveListener(Action callback, UnityEvent @event)
-        {
-            @event.RemoveListener(() =>
-            {
-                callback();
-            });
-        }
-
         public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
         {
+            background = transform.parent.parent.gameObject;
+
+            RectTransform bg = background.GetComponent<RectTransform>();
+            Logger.LogWarning(bg.sizeDelta.x);
+            Logger.LogWarning(bg.sizeDelta.y);
+
             BuildUI();
 
             base.Setup(agent, propertyId, processorUI, canClose);
@@ -100,17 +55,20 @@ namespace PlasmaModding.CustomTypes
 
             outputValue = (T)CustomTypeManager.customTypesProperties[typeName].defaultValue;
 
-            if(_runtimeProperty != null)
+            if (_runtimeProperty != null)
             {
                 outputValue = CustomTypeManager.GetValueCustomType<T>(_runtimeProperty, typeName);
             }
 
             ApplyValueToUI(outputValue);
 
-            SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
+            WriteData();
 
-            applyButton.navigation = new Navigation { mode = Navigation.Mode.None };
-            applyButton.onClick.AddListener(() => Validate());
+            if (applyButton != null)
+            {
+                applyButton.navigation = new Navigation { mode = Navigation.Mode.None };
+                applyButton.onClick.AddListener(() => Validate());
+            }
 
             SetDirty(true);
         }
@@ -148,19 +106,24 @@ namespace PlasmaModding.CustomTypes
             }
         }
 
-        public void Validate(bool callOnClick = false)
+        public void Validate(bool apply = false)
         {
             if (isDirty)
             {
+                WriteData();
+
                 // Deactivate input fields
                 foreach (TMP_InputField inputField in inputFields.Values)
                 {
                     inputField.DeactivateInputField(false);
                 }
 
-                applyButton.onClick.RemoveAllListeners();
+                if (applyButton != null)
+                {
+                    applyButton.onClick.RemoveAllListeners();
+                }
 
-                if (_processorUI != null && callOnClick)
+                if (_processorUI != null && apply)
                 {
                     Apply();
                 }
@@ -173,10 +136,24 @@ namespace PlasmaModding.CustomTypes
             }
         }
 
-        public TMP_InputField GetOrCreateInputField(string name, int width, int height, int posX, int posY, int fontSize, string placeholder = "", TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard)
+        public void WriteData()
         {
-            if (inputFields.ContainsKey(name))
+            SetData(CustomTypeManager.NewData<T>(typeName, outputValue), null);
+        }
+
+        //
+        // Creation of UI elements
+        //
+
+        public TMP_InputField GetOrCreateInputField(string name, int width, int height, int posX = 0, int posY = 0, int fontSize = 56, string placeholder = "", TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard)
+        {
+            if (uiElements.ContainsKey(name))
             {
+                if (uiElements[name] != UI.InputField)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
                 return inputFields[name];
             }
 
@@ -206,7 +183,9 @@ namespace PlasmaModding.CustomTypes
             newInputField.onSubmit.RemoveAllListeners(); // Remove the action of Enter on the input field
 
             inputFields[name] = newInputField;
-            
+            uiElements[name] = UI.InputField;
+            rects[name] = rt;
+
             newInputFieldGO.SetActive(true);
 
             return newInputField;
@@ -222,10 +201,15 @@ namespace PlasmaModding.CustomTypes
             inputFields[name].text = content;
         }
 
-        public TMP_Text GetOrCreateLabel(string name, int posX, int posY, string text, int fontSize)
+        public TMP_Text GetOrCreateLabel(string name, string text, int posX = 0, int posY = 0, int fontSize = 42)
         {
-            if (labels.ContainsKey(name))
+            if (uiElements.ContainsKey(name))
             {
+                if (uiElements[name] != UI.Label)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
                 return labels[name];
             }
 
@@ -243,6 +227,8 @@ namespace PlasmaModding.CustomTypes
             newLabel.text = text;
 
             labels[name] = newLabel;
+            uiElements[name] = UI.Label;
+            rects[name] = rt;
 
             newLabelGO.SetActive(true);
 
@@ -259,10 +245,15 @@ namespace PlasmaModding.CustomTypes
             labels[name].text = text;
         }
 
-        public TMP_Text GetOrCreateHints(string name, int posX, int posY, string text, int fontSize)
+        public TMP_Text GetOrCreateHints(string name, string text, int posX = 0, int posY = 0, int fontSize = 35)
         {
-            if (hints.ContainsKey(name))
+            if (uiElements.ContainsKey(name))
             {
+                if (uiElements[name] != UI.Hint)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
                 return hints[name];
             }
 
@@ -280,6 +271,8 @@ namespace PlasmaModding.CustomTypes
             newHint.text = text;
 
             hints[name] = newHint;
+            uiElements[name] = UI.Hint;
+            rects[name] = rt;
 
             newHintGO.SetActive(true);
 
@@ -296,10 +289,15 @@ namespace PlasmaModding.CustomTypes
             hints[name].text = text;
         }
 
-        public Toggle GetOrCreateToggle(string name, int posX, int posY, string label, int fontSize)
+        public Toggle GetOrCreateToggle(string name, string label, int posX, int posY, int fontSize = 42)
         {
-            if (toggles.ContainsKey(name))
+            if (uiElements.ContainsKey(name))
             {
+                if (uiElements[name] != UI.Toggle)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
                 return toggles[name];
             }
 
@@ -321,6 +319,8 @@ namespace PlasmaModding.CustomTypes
             newToggle.navigation = new Navigation { mode = Navigation.Mode.None }; // Remove the action of Enter on the toggle
 
             toggles[name] = newToggle;
+            uiElements[name] = UI.Toggle;
+            rects[name] = rt;
 
             newToggleGO.SetActive(true);
 
@@ -350,10 +350,15 @@ namespace PlasmaModding.CustomTypes
             toggles[name].gameObject.SetActive(true);
         }
 
-        public Image GetOrCreateImage(string name, int width, int height, int posX, int posY, Sprite sprite, Color color)
+        public Image GetOrCreateImage(string name, Sprite sprite, Color color, int width, int height, int posX = 0, int posY = 0)
         {
-            if (images.ContainsKey(name))
+            if (uiElements.ContainsKey(name))
             {
+                if (uiElements[name] != UI.Image)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
                 return images[name];
             }
 
@@ -371,6 +376,8 @@ namespace PlasmaModding.CustomTypes
             newImage.color = color;
 
             images[name] = newImage;
+            uiElements[name] = UI.Image;
+            rects[name] = rt;
 
             newImageGO.SetActive(true);
 
@@ -398,10 +405,15 @@ namespace PlasmaModding.CustomTypes
         }
 
         // A height of 20 is recommended 
-        public Slider GetOrCreateSlider(string name, int width, int height, int posX, int posY, string label, int fontSize)
+        public Slider GetOrCreateSlider(string name, string label, int width, int height, int posX = 0, int posY = 0, int fontSize = 35)
         {
-            if (sliders.ContainsKey(name))
+            if (uiElements.ContainsKey(name))
             {
+                if (uiElements[name] != UI.Slider)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
                 return sliders[name];
             }
 
@@ -422,6 +434,8 @@ namespace PlasmaModding.CustomTypes
             Slider newSlider = newSliderGO.GetComponent<Slider>();
 
             sliders[name] = newSlider;
+            uiElements[name] = UI.Slider;
+            rects[name] = rt;
 
             newSliderGO.SetActive(true);
 
@@ -455,10 +469,15 @@ namespace PlasmaModding.CustomTypes
             sliderLabel.text = label;
         }
 
-        public Button GetOrCreateButton(string name, int width, int height, int posX, int posY, string label, int fontSize)
+        public Button GetOrCreateButton(string name, string label, int width, int height, int posX = 0, int posY = 0, int fontSize = 42)
         {
-            if (buttons.ContainsKey(name))
+            if (uiElements.ContainsKey(name))
             {
+                if (uiElements[name] != UI.Button)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
                 return buttons[name];
             }
 
@@ -481,6 +500,8 @@ namespace PlasmaModding.CustomTypes
             newButton.navigation = new Navigation { mode = Navigation.Mode.None }; // Remove the action of Enter on the button
 
             buttons[name] = newButton;
+            uiElements[name] = UI.Button;
+            rects[name] = rt;
 
             newButtonGO.SetActive(true);
 
@@ -498,10 +519,15 @@ namespace PlasmaModding.CustomTypes
             buttonLabel.text = label;
         }
 
-        public TMP_Dropdown GetOrCreateDropdown(string name, int width, int height, int posX, int posY, List<string> options, int labelFontSize, int itemFontSize)
+        public TMP_Dropdown GetOrCreateDropdown(string name, List<string> options, int width, int height, int posX = 0, int posY = 0, int labelFontSize = 32, int itemFontSize = 20)
         {
-            if (dropdowns.ContainsKey(name))
+            if (uiElements.ContainsKey(name))
             {
+                if (uiElements[name] != UI.Dropdown)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
                 return dropdowns[name];
             }
 
@@ -528,6 +554,8 @@ namespace PlasmaModding.CustomTypes
             newDropdown.navigation = new Navigation { mode = Navigation.Mode.None }; // Remove the action of Enter on the Dropdown
 
             dropdowns[name] = newDropdown;
+            uiElements[name] = UI.Dropdown;
+            rects[name] = rt;
 
             newDropdownGO.SetActive(true);
 
@@ -622,6 +650,206 @@ namespace PlasmaModding.CustomTypes
             ReplaceDropdownOptions(dropdowns[name], options, index);
         }
 
+        //
+        // Listeners
+        //
+
+        public void AddListener<TValue>(Action<TValue> callback, UnityEvent<TValue> @event)
+        {
+            @event.AddListener(value =>
+            {
+                callback(value);
+
+                if (correctOutputValue)
+                {
+                    if (_processorUI != null || !needConfirmation)
+                        WriteData();
+                }
+
+                if (applyButton != null)
+                {
+                    applyButton.interactable = correctOutputValue;
+                }
+
+                SetDirty(correctOutputValue);
+            });
+        }
+
+        public void RemoveListener<TValue>(Action<TValue> callback, UnityEvent<TValue> @event)
+        {
+            @event.RemoveListener(value =>
+            {
+                callback(value);
+            });
+        }
+
+        // Add and remove listeners for buttons
+        public void AddListener(Action callback, UnityEvent @event)
+        {
+            @event.AddListener(() =>
+            {
+                callback();
+
+                if (correctOutputValue)
+                {
+                    if (_processorUI != null || !needConfirmation)
+                        WriteData();
+                }
+
+                if (applyButton != null)
+                {
+                    applyButton.interactable = correctOutputValue;
+                }
+
+                SetDirty(correctOutputValue);
+            });
+        }
+
+        public void RemoveListener(Action callback, UnityEvent @event)
+        {
+            @event.RemoveListener(() =>
+            {
+                callback();
+            });
+        }
+
+        //
+        // Position UI elements
+        //
+
+        public enum RelativePlacement
+        {
+            RightOf,
+            LeftOf,
+            Above,
+            Below
+        }
+
+        // Postion an element relative to a target
+        public void PlaceRelativeTo(string elementName, string targetName, RelativePlacement placement, float distance = 0f)
+        {
+            if (!rects.TryGetValue(elementName, out RectTransform element))
+                throw new ArgumentException($"UI element '{elementName}' not found.");
+
+            if (!rects.TryGetValue(targetName, out RectTransform target))
+                throw new ArgumentException($"UI element '{targetName}' not found.");
+
+            if (element.parent != target.parent)
+                throw new InvalidOperationException("Relative placement requires both elements to share the same parent.");
+
+            Vector2 targetPos = target.anchoredPosition;
+            Vector2 targetSize = target.sizeDelta;
+            Vector2 elementSize = element.sizeDelta;
+
+            Vector2 newPos = targetPos;
+
+            switch (placement)
+            {
+                case RelativePlacement.RightOf:
+                    newPos.x = targetPos.x + targetSize.x + distance;
+                    newPos.y = targetPos.y;
+                    break;
+
+                case RelativePlacement.LeftOf:
+                    newPos.x = targetPos.x - elementSize.x - distance;
+                    newPos.y = targetPos.y;
+                    break;
+
+                case RelativePlacement.Above:
+                    newPos.x = targetPos.x;
+                    newPos.y = targetPos.y + targetSize.y + distance;
+                    break;
+
+                case RelativePlacement.Below:
+                    newPos.x = targetPos.x;
+                    newPos.y = targetPos.y - elementSize.y - distance;
+                    break;
+            }
+
+            element.anchoredPosition = newPos;
+        }
+
+        public enum EditorSide
+        {
+            Left,
+            Right,
+            Top,
+            Bottom
+        }
+
+        public void SetMarginFromEditorSide(string elementName, EditorSide side, float margin)
+        {
+            if (!rects.TryGetValue(elementName, out RectTransform element))
+                throw new ArgumentException($"UI element '{elementName}' not found.");
+
+            RectTransform rectBackground = background.GetComponent<RectTransform>();
+
+            Vector2 pos = element.anchoredPosition;
+            Vector2 elementSize = element.sizeDelta;
+            Vector2 bgSize = rectBackground.sizeDelta;
+
+            switch (side)
+            {
+                case EditorSide.Left:
+                    pos.x = margin;
+                    break;
+
+                case EditorSide.Right:
+                    pos.x = bgSize.x - elementSize.x - margin;
+                    break;
+
+                case EditorSide.Bottom:
+                    pos.y = margin;
+                    break;
+
+                case EditorSide.Top:
+                    pos.y = bgSize.y - elementSize.y - margin;
+                    break;
+            }
+
+            element.anchoredPosition = pos;
+        }
+
+        public void PlaceRelativeToEditorCenter(string elementName, Vector2 offset)
+        {
+            if (!rects.TryGetValue(elementName, out RectTransform element))
+                throw new ArgumentException($"UI element '{elementName}' not found.");
+
+            RectTransform rectBackground = background.GetComponent<RectTransform>();
+
+            Vector2 bgSize = rectBackground.sizeDelta;
+            Vector2 elementSize = element.sizeDelta;
+
+            Vector2 centerPos = new Vector2(
+                (bgSize.x - elementSize.x) * 0.5f,
+                (bgSize.y - elementSize.y) * 0.5f
+            );
+
+            element.anchoredPosition = centerPos + offset;
+        }
+
+        //
+        //
+        //
+
+        private enum UI
+        {
+            InputField,
+            Label,
+            Hint,
+            Toggle,
+            Image,
+            Slider,
+            Button,
+            Dropdown
+        }
+
+        private GameObject background;
+
+        private Dictionary<string, UI> uiElements = new Dictionary<string, UI>();
+
+        private Dictionary<string, RectTransform> rects = new Dictionary<string, RectTransform>();
+
         private Dictionary<string, TMP_InputField> inputFields = new Dictionary<string, TMP_InputField>();
 
         private Dictionary<string, TMP_Text> labels = new Dictionary<string, TMP_Text>();
@@ -645,5 +873,7 @@ namespace PlasmaModding.CustomTypes
         public T outputValue;
 
         public bool correctOutputValue = true;
+
+        public bool needConfirmation = true;
     }
 }
