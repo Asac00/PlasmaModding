@@ -111,19 +111,20 @@ namespace PlasmaModding
             return port;
         }
 
-        public static AgentGestalt.Port CreatePropertyPort(AgentGestalt gestalt, string name, string description, Data.Types datatype = Data.Types.None, bool configurable = true, Data defaultData = null, string reference_name = null, bool expectsData = true, bool hidePort = false)
+        public static AgentGestalt.Port CreatePropertyPort(AgentGestalt gestalt, string name, string description, Data.Types datatype = Data.Types.None, bool configurable = true, Data defaultData = null, string reference_name = null, bool expectsData = true, bool hidePort = false, bool isTypeEditable = false)
         {
             if (defaultData == null)
                 defaultData = new Data();
+
             AgentGestalt.Port port = CreateGenericPort(gestalt, name, description);
             AgentGestalt.Property property = new AgentGestalt.Property();
+
             int property_dict_id = 1;
             try
             {
                 property_dict_id = GetHighestKey(gestalt.ports) + 1;
             }
             catch (Exception) { }
-
 
             property.position = port.position;
             gestalt.properties.Add(property_dict_id, property);
@@ -140,11 +141,13 @@ namespace PlasmaModding
             property.configurable = configurable;
             property.name = name;
             property.description = description;
+            property.allowsAnyData = isTypeEditable;
             port.dataType = datatype;
             port.mappedProperty = property_dict_id;
             port.type = AgentGestalt.Port.Types.Property;
             port.expectsData = expectsData;
             port.hidePort = hidePort;
+            port.allowsAnyData = isTypeEditable;
 
             return port;
         }
@@ -185,7 +188,7 @@ namespace PlasmaModding
             return l.Keys.OrderBy(b => b).Last();
         }
 
-        public static AgentGestalt.Port CreateOutputPort(AgentGestalt gestalt, string name, string description, Data.Types datatype = Data.Types.None, bool configurable = true, Data defaultData = null, string reference_name = null)
+        public static AgentGestalt.Port CreateOutputPort(AgentGestalt gestalt, string name, string description, Data.Types datatype = Data.Types.None, bool configurable = true, Data defaultData = null, string reference_name = null, bool isTypeEditable = false)
         {
             if (defaultData == null)
                 defaultData = new Data();
@@ -213,7 +216,7 @@ namespace PlasmaModding
             property.name = name;
             property.description = description;
             port.dataType = datatype;
-            port.injectedProperty = property_dict_id;
+            port.injectedProperty = isTypeEditable ? property_dict_id : 0;
             port.type = AgentGestalt.Port.Types.Output;
             return port;
         }

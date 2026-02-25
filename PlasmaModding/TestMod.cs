@@ -39,7 +39,7 @@ namespace PlasmaModding
         {
             AgentGestalt agentGestalt1 = CustomNodeManager.CreateGestalt(typeof(TestAgent), "Test", "Test", AgentCategoryEnum.Misc);
             CustomNodeManager.CreateCommandPort(agentGestalt1, "execute", "", 1);
-            CustomNodeManager.CreatePropertyPort(agentGestalt1, "value", "The entry", TestMod.CustomDataTypeInit.type, true, CustomTypeManager.NewData<string>("New String", "test"), null);
+            CustomNodeManager.CreatePropertyPort(agentGestalt1, "value", "The entry", TestMod.CustomDataTypeInit.type, false, CustomTypeManager.NewData<string>("New String", "test"), null, true);
             CustomNodeManager.CreateOutputPort(agentGestalt1, "output", "The output", Data.Types.Text, false, null, null);
             CustomNodeManager.CreateNode(agentGestalt1, "aefc0112-85fd-4c59-b259-e54bad24ffce");
             AgentGestalt agentGestalt2 = CustomNodeManager.CreateGestalt(typeof(InjectAgent), "Inject", "Inject", AgentCategoryEnum.Misc);
@@ -127,34 +127,22 @@ namespace PlasmaModding
 
         public override void BuildUI()
         {
-            TMP_Text result = GetOrCreateLabel("result", "");
-            PlaceRelativeToEditorCenter("result", Vector2.zero);
-
-            Button addButton = GetOrCreateButton("add", "ADD", 200, 100);
-            PlaceRelativeTo("add", "result", RelativePlacement.Below, 100);
-            AddListener(Add, addButton.onClick);
-
-            Button resetButton = GetOrCreateButton("reset", "RESET", 200, 100);
-            PlaceRelativeTo("reset", "add", RelativePlacement.Below, 100);
-            AddListener(Reset, resetButton.onClick);
+            inputField = GetOrCreateInputField("inputField", 500, 1000);
+            PlaceRelativeToEditorCenter("inputField", Vector2.zero);
+            AddListener(Apply, inputField.onValueChanged);
         }
 
         public override void ApplyValueToUI(string value)
         {
-            ChangeLabelText("result", value);
+            ChangeInputFieldContent("inputField", value);
         }
 
-        private void Add()
+        private void Apply(string value)
         {
-            outputValue += "A";
-            ChangeLabelText("result", outputValue);
+            outputValue = value;
         }
 
-        private void Reset()
-        {
-            outputValue = "";
-            ChangeLabelText("result", outputValue);
-        }
+        TMP_InputField inputField;
     }
 
     public class TestAgent : CustomAgent

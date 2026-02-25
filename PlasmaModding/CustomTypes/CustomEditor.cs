@@ -27,30 +27,13 @@ namespace PlasmaModding.CustomTypes
 
         public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
         {
-            background = transform.parent.parent.gameObject;
-
-            RectTransform bg = background.GetComponent<RectTransform>();
-            Logger.LogWarning(bg.sizeDelta.x);
-            Logger.LogWarning(bg.sizeDelta.y);
+            bgSize = new Vector2(editorSize.x, editorSize.y + footerHeight + headerHeight);
 
             BuildUI();
 
             base.Setup(agent, propertyId, processorUI, canClose);
 
-            // TODO : This has not to be here
-            foreach (TMP_InputField inputField in inputFields.Values)
-            {
-                if (!string.IsNullOrEmpty(inputField.text))
-                {
-                    inputField.caretPosition = 0;
-                }
-                if (_processorUI != null)
-                {
-                    inputField.ActivateInputField();
-                }
-            }
-
-            processorUISize = editorSize;
+            processorUISize = bgSize;
             showApplyMessage = (_processorUI == null || !_runtimeProperty.definition.isScript);
 
             outputValue = (T)CustomTypeManager.customTypesProperties[typeName].defaultValue;
@@ -782,11 +765,8 @@ namespace PlasmaModding.CustomTypes
             if (!rects.TryGetValue(elementName, out RectTransform element))
                 throw new ArgumentException($"UI element '{elementName}' not found.");
 
-            RectTransform rectBackground = background.GetComponent<RectTransform>();
-
             Vector2 pos = element.anchoredPosition;
             Vector2 elementSize = element.sizeDelta;
-            Vector2 bgSize = rectBackground.sizeDelta;
 
             switch (side)
             {
@@ -815,9 +795,6 @@ namespace PlasmaModding.CustomTypes
             if (!rects.TryGetValue(elementName, out RectTransform element))
                 throw new ArgumentException($"UI element '{elementName}' not found.");
 
-            RectTransform rectBackground = background.GetComponent<RectTransform>();
-
-            Vector2 bgSize = rectBackground.sizeDelta;
             Vector2 elementSize = element.sizeDelta;
 
             Vector2 centerPos = new Vector2(
@@ -844,8 +821,6 @@ namespace PlasmaModding.CustomTypes
             Dropdown
         }
 
-        private GameObject background;
-
         private Dictionary<string, UI> uiElements = new Dictionary<string, UI>();
 
         private Dictionary<string, RectTransform> rects = new Dictionary<string, RectTransform>();
@@ -867,6 +842,9 @@ namespace PlasmaModding.CustomTypes
         private Dictionary<string, TMP_Dropdown> dropdowns = new Dictionary<string, TMP_Dropdown>();
 
         public Vector2 editorSize;
+        private Vector2 bgSize;
+        private float headerHeight = 80;
+        private float footerHeight = 80;
 
         public string typeName;
 
