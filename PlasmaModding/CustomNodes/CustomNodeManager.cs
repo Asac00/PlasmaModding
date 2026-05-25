@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using TheraBytes.BetterUi;
 using UnityEngine;
 using Visor;
 
@@ -209,7 +210,7 @@ namespace PlasmaModding
             catch (Exception) { }
 
             property.position = port.position;
-            gestalt.properties.Add(property_dict_id, property);
+            gestalt.properties.Add(property_dict_id, property); 
 
             if (gestalt.agent.IsSubclassOf(typeof(CustomAgent)))
             {
@@ -224,6 +225,7 @@ namespace PlasmaModding
             property.defaultData = defaultData;
             property.name = name;
             property.description = description;
+            property.injectable = defaultData.type == Data.Types.None;
             port.dataType = defaultData.type;
             port.injectedProperty = isTypeEditable ? property_dict_id : 0;
             port.type = AgentGestalt.Port.Types.Output;
