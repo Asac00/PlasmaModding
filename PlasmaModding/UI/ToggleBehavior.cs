@@ -3,7 +3,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 
-namespace PlasmaModding.ModsMenuScripts
+namespace PlasmaModding.UI
 {
     public class ToggleBehavior : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
     {

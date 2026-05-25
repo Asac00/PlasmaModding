@@ -639,6 +639,8 @@ namespace PlasmaModding
                 AgentProperty agentProperty = agentToEdit.runtimeProperties[agentPropertyIdToEdit];
                 Data.Types type = agentProperty.GetDataType();
 
+                Logger.LogWarning(type.ToString());
+
                 if (customTypesByName.ContainsValue(type) && !__instance.editors.ContainsKey(type))
                 {
                     foreach (string typeName in customTypesByName.Keys)

@@ -1,4 +1,5 @@
 ﻿using BepInEx.Logging;
+using PlasmaModding.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,13 +28,13 @@ namespace PlasmaModding.CustomTypes
 
         public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
         {
-            bgSize = new Vector2(editorSize.x, editorSize.y + footerHeight + headerHeight);
+            windowSize = new Vector2(editorSize.x + rightMarginWidth, editorSize.y + footerHeight + headerHeight);
 
             BuildUI();
 
             base.Setup(agent, propertyId, processorUI, canClose);
 
-            processorUISize = bgSize;
+            processorUISize = windowSize;
             showApplyMessage = (_processorUI == null || !_runtimeProperty.definition.isScript);
 
             outputValue = (T)CustomTypeManager.customTypesProperties[typeName].defaultValue;
@@ -128,6 +129,10 @@ namespace PlasmaModding.CustomTypes
         // Creation of UI elements
         //
 
+        //
+        // InputFields
+        //
+
         public TMP_InputField GetOrCreateInputField(string name, int width, int height, int posX = 0, int posY = 0, int fontSize = 56, string placeholder = "", TMP_InputField.ContentType contentType = TMP_InputField.ContentType.Standard)
         {
             if (uiElements.ContainsKey(name))
@@ -138,6 +143,11 @@ namespace PlasmaModding.CustomTypes
                     return null;
                 }
                 return inputFields[name];
+            }
+            if (name == "InputField")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
             }
 
             GameObject referenceInputFieldGO = transform.Find("InputField").gameObject;
@@ -174,15 +184,54 @@ namespace PlasmaModding.CustomTypes
             return newInputField;
         }
 
+        public string GetInputFieldContent(string name)
+        {
+            if (!inputFields.ContainsKey(name))
+            {
+                Logger.LogError("There are no input field with the name : " + name);
+                return "";
+            }
+            return inputFields[name].text;
+        }
+
         public void ChangeInputFieldContent(string name, string content)
         {
             if (!inputFields.ContainsKey(name))
             {
-                Logger.LogError("There's no input field with the name : " + name);
+                Logger.LogError("There are no input field with the name : " + name);
                 return;
             }
             inputFields[name].text = content;
         }
+
+        public void ChangeInputFieldContentType(string name, TMP_InputField.ContentType contentType)
+        {
+            if (!inputFields.ContainsKey(name))
+            {
+                Logger.LogError("There are no input field with the name : " + name);
+                return;
+            }
+            inputFields[name].contentType = contentType;
+        }
+
+        public void ChangeInputFieldPlaceholder(string name, string placeholder)
+        {
+            if (!inputFields.ContainsKey(name))
+            {
+                Logger.LogError("There are no input field with the name : " + name);
+                return;
+            }
+            TextMeshProUGUI placeholderText = inputFields[name].placeholder as TextMeshProUGUI;
+
+            if (placeholderText != null)
+            {
+                placeholderText.text = placeholder;
+            }
+        }
+
+        //
+        // Labels
+        //
 
         public TMP_Text GetOrCreateLabel(string name, string text, int posX = 0, int posY = 0, int fontSize = 42)
         {
@@ -194,6 +243,11 @@ namespace PlasmaModding.CustomTypes
                     return null;
                 }
                 return labels[name];
+            }
+            if (name == "Label")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
             }
 
             GameObject referenceLabelGO = transform.Find("Label").gameObject;
@@ -222,11 +276,15 @@ namespace PlasmaModding.CustomTypes
         {
             if (!labels.ContainsKey(name))
             {
-                Logger.LogError("There's no label with the name : " + name);
+                Logger.LogError("There are no label with the name : " + name);
                 return;
             }
             labels[name].text = text;
         }
+
+        //
+        // Hints
+        // 
 
         public TMP_Text GetOrCreateHints(string name, string text, int posX = 0, int posY = 0, int fontSize = 35)
         {
@@ -238,6 +296,11 @@ namespace PlasmaModding.CustomTypes
                     return null;
                 }
                 return hints[name];
+            }
+            if (name == "Hint")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
             }
 
             GameObject referenceHintGO = transform.Find("Hint").gameObject;
@@ -266,11 +329,15 @@ namespace PlasmaModding.CustomTypes
         {
             if (!hints.ContainsKey(name))
             {
-                Logger.LogError("There's no hint with the name : " + name);
+                Logger.LogError("There are no hint with the name : " + name);
                 return;
             }
             hints[name].text = text;
         }
+
+        //
+        // Toggles
+        // 
 
         public Toggle GetOrCreateToggle(string name, string label, int posX, int posY, int fontSize = 42)
         {
@@ -283,8 +350,13 @@ namespace PlasmaModding.CustomTypes
                 }
                 return toggles[name];
             }
+            if (name == "Toggle")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
+            }
 
-            GameObject referenceToggleGO = transform.Find("RoundToggle").gameObject;
+            GameObject referenceToggleGO = transform.Find("Toggle").gameObject;
 
             GameObject newToggleGO = Instantiate(referenceToggleGO, transform);
             newToggleGO.name = name;
@@ -314,7 +386,7 @@ namespace PlasmaModding.CustomTypes
         {
             if (!toggles.ContainsKey(name))
             {
-                Logger.LogError("There's no toggle with the name : " + name);
+                Logger.LogError("There are no toggle with the name : " + name);
                 return;
             }
             Text toggleLabel = toggles[name].GetComponentInChildren<Text>();
@@ -325,13 +397,17 @@ namespace PlasmaModding.CustomTypes
         {
             if (!toggles.ContainsKey(name))
             {
-                Logger.LogError("There's no toggle with the name : " + name);
+                Logger.LogError("There are no toggle with the name : " + name);
                 return;
             }
             toggles[name].gameObject.SetActive(false);
             toggles[name].isOn = isOn;
             toggles[name].gameObject.SetActive(true);
         }
+
+        //
+        // Images
+        // 
 
         public Image GetOrCreateImage(string name, Sprite sprite, Color color, int width, int height, int posX = 0, int posY = 0)
         {
@@ -343,6 +419,11 @@ namespace PlasmaModding.CustomTypes
                     return null;
                 }
                 return images[name];
+            }
+            if (name == "Image")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
             }
 
             GameObject referenceImageGO = transform.Find("Image").gameObject;
@@ -371,7 +452,7 @@ namespace PlasmaModding.CustomTypes
         {
             if (!images.ContainsKey(name))
             {
-                Logger.LogError("There's no image with the name : " + name);
+                Logger.LogError("There are no image with the name : " + name);
                 return;
             }
             images[name].sprite = sprite;
@@ -381,11 +462,15 @@ namespace PlasmaModding.CustomTypes
         {
             if (!images.ContainsKey(name))
             {
-                Logger.LogError("There's no image with the name : " + name);
+                Logger.LogError("There are no image with the name : " + name);
                 return;
             }
             images[name].color = color;
         }
+
+        //
+        // Sliders
+        // 
 
         // A height of 20 is recommended 
         public Slider GetOrCreateSlider(string name, string label, int width, int height, int posX = 0, int posY = 0, int fontSize = 35)
@@ -398,6 +483,11 @@ namespace PlasmaModding.CustomTypes
                     return null;
                 }
                 return sliders[name];
+            }
+            if (name == "Slider")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
             }
 
             GameObject referenceSliderGO = transform.Find("Slider").gameObject;
@@ -430,7 +520,7 @@ namespace PlasmaModding.CustomTypes
         {
             if (!sliders.ContainsKey(name))
             {
-                Logger.LogError("There's no slider with the name : " + name);
+                Logger.LogError("There are no slider with the name : " + name);
                 return;
             }
             if (value < 0 || value > 1)
@@ -445,12 +535,16 @@ namespace PlasmaModding.CustomTypes
         {
             if (!sliders.ContainsKey(name))
             {
-                Logger.LogError("There's no slider with the name : " + name);
+                Logger.LogError("There are no slider with the name : " + name);
                 return;
             }
             TMP_Text sliderLabel = sliders[name].GetComponentInChildren<TMP_Text>();
             sliderLabel.text = label;
         }
+
+        //
+        // Buttons
+        // 
 
         public Button GetOrCreateButton(string name, string label, int width, int height, int posX = 0, int posY = 0, int fontSize = 42)
         {
@@ -462,6 +556,11 @@ namespace PlasmaModding.CustomTypes
                     return null;
                 }
                 return buttons[name];
+            }
+            if (name == "Button")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
             }
 
             GameObject referenceButtonGO = transform.Find("Button").gameObject;
@@ -495,12 +594,16 @@ namespace PlasmaModding.CustomTypes
         {
             if (!buttons.ContainsKey(name))
             {
-                Logger.LogError("There's no button with the name : " + name);
+                Logger.LogError("There are no button with the name : " + name);
                 return;
             }
             TMP_Text buttonLabel = buttons[name].GetComponentInChildren<TMP_Text>();
             buttonLabel.text = label;
         }
+
+        //
+        // Dropdowns
+        //
 
         public TMP_Dropdown GetOrCreateDropdown(string name, List<string> options, int width, int height, int posX = 0, int posY = 0, int labelFontSize = 32, int itemFontSize = 20)
         {
@@ -512,6 +615,11 @@ namespace PlasmaModding.CustomTypes
                     return null;
                 }
                 return dropdowns[name];
+            }
+            if (name == "Dropdown")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
             }
 
             GameObject referenceDropdownGO = transform.Find("Dropdown").gameObject;
@@ -549,7 +657,7 @@ namespace PlasmaModding.CustomTypes
         {
             if (newOptions?.Count == 0)
             {
-                Logger.LogError("There must be one choice at least !");
+                Logger.LogError("There must be at least one choice !");
                 return;
             }
             if (index < 0 || index >= newOptions.Count)
@@ -565,14 +673,30 @@ namespace PlasmaModding.CustomTypes
 
         public List<string> GetDropdownOptions(string name)
         {
-            return dropdowns[name].options.Select(o => o.text).ToList();
-        }
-
-        public void ChangeDropdownValue(string name, int index)
-        {
             if (!dropdowns.ContainsKey(name))
             {
                 Logger.LogError("There's no dropdown with the name : " + name);
+                return null;
+            }
+            return dropdowns[name].options.Select(o => o.text).ToList();
+        }
+
+        public string GetDropdownCurrentValue(string name)
+        {
+            if (!dropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no dropdown with the name : " + name);
+                return "";
+            }
+
+            return GetDropdownOptions(name)[dropdowns[name].value];
+        }
+
+        public void ChangeDropdownCurrentValue(string name, int index)
+        {
+            if (!dropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no dropdown with the name : " + name);
                 return;
             }
             if (index < 0  || index >= dropdowns[name].options.Count)
@@ -584,11 +708,34 @@ namespace PlasmaModding.CustomTypes
             dropdowns[name].RefreshShownValue();
         }
 
+        public void ChangeDropdownCurrentValue(string name, string value, bool acceptNewValue = false)
+        {
+            if (!dropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no dropdown with the name : " + name);
+                return;
+            }
+            List<string> options = GetDropdownOptions(name);
+            int index = options.IndexOf(value);
+
+            if (index == -1)
+            {
+                if (!acceptNewValue)
+                {
+                    Logger.LogError($"The value {value} is not present in the options of the dropdown {name} !");
+                    return;
+                }
+                AddDropdownOption(name, value, true);
+                index = options.Count;
+            }
+            ChangeDropdownCurrentValue(name, index);
+        }
+
         public void AddDropdownOption(string name, string option, bool acceptDuplicate = false)
         {
             if (!dropdowns.ContainsKey(name))
             {
-                Logger.LogError("There's no dropdown with the name : " + name);
+                Logger.LogError("There are no dropdown with the name : " + name);
                 return;
             }
             List<string> options = GetDropdownOptions(name);
@@ -604,13 +751,18 @@ namespace PlasmaModding.CustomTypes
         {
             if (!dropdowns.ContainsKey(name))
             {
-                Logger.LogError("There's no dropdown with the name : " + name);
+                Logger.LogError("There are no dropdown with the name : " + name);
                 return;
             }
             List<string> options = GetDropdownOptions(name);
             if (!options.Contains(optionToRemove) && warnOptionMissing)
             {
-                Logger.LogWarning("There's no option called : " + optionToRemove);
+                Logger.LogWarning("There are no option called : " + optionToRemove);
+                return;
+            }
+            if (options.Count == 1)
+            {
+                Logger.LogError("There must be at least one option !");
                 return;
             }
 
@@ -627,10 +779,191 @@ namespace PlasmaModding.CustomTypes
         {
             if (!dropdowns.ContainsKey(name))
             {
-                Logger.LogError("There's no dropdown with the name : " + name);
+                Logger.LogError("There are no dropdown with the name : " + name);
                 return;
             }
             ReplaceDropdownOptions(dropdowns[name], options, index);
+        }
+
+        //
+        // SplitButtons
+        // 
+
+        public Button GetOrCreateSplitButton(string name, List<string> options, int width, int height, int posX = 0, int posY = 0, int labelFontSize = 42, int itemFontSize = 35)
+        {
+            if (uiElements.ContainsKey(name))
+            {
+                if (uiElements[name] != UI.SplitButton)
+                {
+                    Logger.LogError("You can't change the type of an UI element !");
+                    return null;
+                }
+                return splitButtons[name];
+            }
+            if (name == "SplitButton")
+            {
+                Logger.LogError($"{name} is a reference name; it cannot be used !");
+                return null;
+            }
+
+            GameObject referenceSplitButtonGO = transform.Find("SplitButton").gameObject;
+
+            GameObject newSplitButtonGO = Instantiate(referenceSplitButtonGO, transform);
+            newSplitButtonGO.name = name;
+
+            RectTransform rt = newSplitButtonGO.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(width, height);
+            rt.anchoredPosition = new Vector2(posX, posY);
+
+            // Button part
+            Button newSplitButton = newSplitButtonGO.GetComponentInChildren<Button>();
+
+            TMP_Text newSplitButtonLabel = newSplitButton.GetComponentInChildren<TMP_Text>();
+            newSplitButtonLabel.fontSize = labelFontSize;
+
+            newSplitButtonLabel.text = options[0];
+
+            newSplitButton.navigation = new Navigation { mode = Navigation.Mode.None }; // Remove the action of Enter on the button
+
+            // Dropdown part
+            TMP_Dropdown newSplitButtonDropdown = newSplitButtonGO.GetComponentInChildren<TMP_Dropdown>();
+
+            Transform template = newSplitButtonDropdown.template;
+            TMP_Text itemLabel = template.GetComponentInChildren<TMP_Text>();
+            itemLabel.fontSize = itemFontSize;
+
+            ReplaceDropdownOptions(newSplitButtonDropdown, options);
+
+            newSplitButtonDropdown.navigation = new Navigation { mode = Navigation.Mode.None }; // Remove the action of Enter on the Dropdown
+
+            SplitButtonDropdownBehaviour splitButtonDropdownBehaviour = newSplitButtonDropdown.gameObject.AddComponent<SplitButtonDropdownBehaviour>();
+            splitButtonDropdownBehaviour.dropdown = newSplitButtonDropdown;
+            splitButtonDropdownBehaviour.buttonLabel = newSplitButtonLabel;
+
+            splitButtons[name] = newSplitButton;
+            splitButtonDropdowns[name] = newSplitButtonDropdown;
+            uiElements[name] = UI.SplitButton;
+            rects[name] = rt;
+
+            newSplitButtonGO.SetActive(true);
+
+            return newSplitButton;
+        }
+
+        public List<string> GetSplitButtonOptions(string name)
+        {
+            if (!splitButtonDropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no split button with the name : " + name);
+                return null;
+            }
+            return splitButtonDropdowns[name].options.Select(o => o.text).ToList();
+        }
+
+        public string GetSplitButtonCurrentValue(string name)
+        {
+            if (!splitButtonDropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no split button with the name : " + name);
+                return "";
+            }
+
+            Logger.LogWarning(GetSplitButtonOptions(name)[splitButtonDropdowns[name].value]);
+            return GetSplitButtonOptions(name)[splitButtonDropdowns[name].value];
+        }
+
+        public void ChangeSplitButtonCurrentValue(string name, int index)
+        {
+            Logger.LogWarning(index);
+            if (!splitButtonDropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no split button with the name : " + name);
+                return;
+            }
+            if (index < 0 || index >= splitButtonDropdowns[name].options.Count)
+            {
+                Logger.LogError("The index is out of range !");
+                return;
+            }
+            splitButtonDropdowns[name].value = index;
+            splitButtonDropdowns[name].RefreshShownValue();
+        }
+
+        public void ChangeSplitButtonCurrentValue(string name, string value, bool acceptNewValue = false)
+        {
+            if (!splitButtonDropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no split button with the name : " + name);
+                return;
+            }
+            List<string> options = GetSplitButtonOptions(name);
+            int index = options.IndexOf(value);
+
+            if (index == -1)
+            {
+                if (!acceptNewValue)
+                {
+                    Logger.LogError($"The value {value} is not present in the options of the split button {name} !");
+                    return;
+                }
+                AddSplitButtonOption(name, value, true);
+                index = options.Count;
+            }
+            ChangeSplitButtonCurrentValue(name, index);
+        }
+
+        public void AddSplitButtonOption(string name, string option, bool acceptDuplicate = false)
+        {
+            if (!splitButtonDropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no split button with the name : " + name);
+                return;
+            }
+            List<string> options = GetSplitButtonOptions(name);
+            if (options.Contains(option) && !acceptDuplicate)
+            {
+                return;
+            }
+            options.Add(option);
+            ReplaceDropdownOptions(splitButtonDropdowns[name], options, splitButtonDropdowns[name].value);
+        }
+
+        public void RemoveSplitButtonOption(string name, string optionToRemove, bool warnOptionMissing = true)
+        {
+            if (!splitButtonDropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no split button with the name : " + name);
+                return;
+            }
+            List<string> options = GetSplitButtonOptions(name);
+            if (!options.Contains(optionToRemove) && warnOptionMissing)
+            {
+                Logger.LogWarning("There are no option called : " + optionToRemove);
+                return;
+            }
+            if (options.Count == 1)
+            {
+                Logger.LogError("There must be at least one option !");
+                return;
+            }
+
+            int index = splitButtonDropdowns[name].value;
+            int indexOptionToRemove = options.IndexOf(optionToRemove);
+            index = index == indexOptionToRemove ? 0 : (index < indexOptionToRemove ? index : index - 1);
+
+            options.Remove(optionToRemove);
+
+            ReplaceDropdownOptions(splitButtonDropdowns[name], options, index);
+        }
+
+        public void ChangeSplitButtonOptions(string name, List<string> options, int index = 0)
+        {
+            if (!splitButtonDropdowns.ContainsKey(name))
+            {
+                Logger.LogError("There are no split button with the name : " + name);
+                return;
+            }
+            ReplaceDropdownOptions(splitButtonDropdowns[name], options, index);
         }
 
         //
@@ -724,6 +1057,12 @@ namespace PlasmaModding.CustomTypes
             Vector2 targetSize = target.sizeDelta;
             Vector2 elementSize = element.sizeDelta;
 
+            // Add the width of the arrow for split buttons
+            if (uiElements[elementName] == UI.SplitButton)
+            {
+                elementSize.x += splitButtonArrowWidth;
+            }
+
             Vector2 newPos = targetPos;
 
             switch (placement)
@@ -768,6 +1107,12 @@ namespace PlasmaModding.CustomTypes
             Vector2 pos = element.anchoredPosition;
             Vector2 elementSize = element.sizeDelta;
 
+            // Add the width of the arrow for split buttons
+            if (uiElements[elementName] == UI.SplitButton)
+            {
+                elementSize.x += splitButtonArrowWidth;
+            }
+
             switch (side)
             {
                 case EditorSide.Left:
@@ -775,7 +1120,7 @@ namespace PlasmaModding.CustomTypes
                     break;
 
                 case EditorSide.Right:
-                    pos.x = bgSize.x - elementSize.x - margin;
+                    pos.x = editorSize.x - elementSize.x - margin;
                     break;
 
                 case EditorSide.Bottom:
@@ -783,7 +1128,7 @@ namespace PlasmaModding.CustomTypes
                     break;
 
                 case EditorSide.Top:
-                    pos.y = bgSize.y - elementSize.y - margin;
+                    pos.y = editorSize.y - elementSize.y - margin;
                     break;
             }
 
@@ -797,9 +1142,15 @@ namespace PlasmaModding.CustomTypes
 
             Vector2 elementSize = element.sizeDelta;
 
+            // Add the width of the arrow for split buttons
+            if (uiElements[elementName] == UI.SplitButton)
+            {
+                elementSize.x += splitButtonArrowWidth;
+            }
+
             Vector2 centerPos = new Vector2(
-                (bgSize.x - elementSize.x) * 0.5f,
-                (bgSize.y - elementSize.y) * 0.5f
+                (editorSize.x - elementSize.x) * 0.5f,
+                (editorSize.y - elementSize.y) * 0.5f
             );
 
             element.anchoredPosition = centerPos + offset;
@@ -818,7 +1169,8 @@ namespace PlasmaModding.CustomTypes
             Image,
             Slider,
             Button,
-            Dropdown
+            Dropdown,
+            SplitButton
         }
 
         private Dictionary<string, UI> uiElements = new Dictionary<string, UI>();
@@ -841,10 +1193,15 @@ namespace PlasmaModding.CustomTypes
 
         private Dictionary<string, TMP_Dropdown> dropdowns = new Dictionary<string, TMP_Dropdown>();
 
+        private Dictionary<string, Button> splitButtons = new Dictionary<string, Button>();
+        private Dictionary<string, TMP_Dropdown> splitButtonDropdowns = new Dictionary<string, TMP_Dropdown>();
+
         public Vector2 editorSize;
-        private Vector2 bgSize;
-        private float headerHeight = 80;
+        private Vector2 windowSize;
+        private float headerHeight = 150;
         private float footerHeight = 80;
+        private float rightMarginWidth = 50;
+        private float splitButtonArrowWidth = 75;
 
         public string typeName;
 

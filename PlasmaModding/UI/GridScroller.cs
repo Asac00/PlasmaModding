@@ -2,16 +2,15 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PlasmaModding.ModsMenuScripts
+namespace PlasmaModding.UI
 {
     public class GridScroller : MonoBehaviour
     {
-        public RectTransform content;
-        public RectTransform viewport;
+        public RectTransform gridTransform;
         public GridLayoutGroup grid;
         public Scrollbar scrollbar;
 
-        float scrollSpeed = 0.1f;
+        public float scrollSpeed;
 
         private float contentHeight;
         private bool isScrollBarActive = true;
@@ -20,7 +19,7 @@ namespace PlasmaModding.ModsMenuScripts
         {
             yield return new WaitForEndOfFrame();
 
-            contentHeight = viewport.rect.height;
+            contentHeight = gridTransform.rect.height;
 
             float gridHeight = GetTotalContentHeight();
             if (gridHeight < contentHeight)
@@ -56,16 +55,16 @@ namespace PlasmaModding.ModsMenuScripts
         void Scroll(float value)
         {
             float gridHeight = GetTotalContentHeight();
-            Vector2 offsetMax = content.offsetMax;
+            Vector2 offsetMax = gridTransform.offsetMax;
             offsetMax.y = (gridHeight - contentHeight) * value;
-            content.offsetMax = offsetMax;
+            gridTransform.offsetMax = offsetMax;
         }
 
         public float GetTotalContentHeight()
         {
             int childCount = grid.transform.childCount;
-            int columns = Mathf.Max(1, grid.constraintCount); // fixed column count
-            int rows = Mathf.CeilToInt((float)childCount / columns);
+            int columns = Mathf.FloorToInt(gridTransform.rect.width / (grid.cellSize.x + grid.spacing.x));
+            int rows = childCount / columns;
 
             float totalHeight =
                 grid.padding.top +

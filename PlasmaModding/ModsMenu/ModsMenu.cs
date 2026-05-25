@@ -9,7 +9,7 @@ using BepInEx.Bootstrap;
 using BepInEx;
 using System.IO;
 using UnityEngine.UI;
-using PlasmaModding.ModsMenuScripts;
+using PlasmaModding.UI;
 
 namespace PlasmaModding
 {
@@ -87,13 +87,11 @@ namespace PlasmaModding
                     modsMenuObject.SetActive(false);
 
                     // Add scripts to the prefab
-                    GameObject modSelectorMask = modsMenuObject.transform.Find("Background/Border/Middle/Mod Selector Mask").gameObject;
                     GameObject modSelectorGroup = modsMenuObject.transform.Find("Background/Border/Middle/Mod Selector Mask/Mod Selector Group").gameObject;
                     Scrollbar scrollbar = modsMenuObject.transform.Find("Background/Border/Middle").GetComponentInChildren<Scrollbar>();
 
-                    GridScroller gridScroller = (GridScroller)modSelectorMask.AddComponent<GridScroller>();
-                    gridScroller.content = modSelectorGroup.GetComponent<RectTransform>();
-                    gridScroller.viewport = modSelectorMask.GetComponent<RectTransform>();
+                    GridScroller gridScroller = (GridScroller)modSelectorGroup.AddComponent<GridScroller>();
+                    gridScroller.gridTransform = modSelectorGroup.GetComponent<RectTransform>();
                     gridScroller.grid = modSelectorGroup.GetComponent<GridLayoutGroup>();
                     gridScroller.scrollbar = scrollbar;
 

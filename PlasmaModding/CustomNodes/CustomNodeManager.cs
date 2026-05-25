@@ -111,7 +111,7 @@ namespace PlasmaModding
             return port;
         }
 
-        public static AgentGestalt.Port CreatePropertyPort(AgentGestalt gestalt, string name, string description, Data.Types datatype = Data.Types.None, bool configurable = true, Data defaultData = null, string reference_name = null, bool expectsData = true, bool hidePort = false, bool isTypeEditable = false)
+        public static AgentGestalt.Port CreatePropertyPort(AgentGestalt gestalt, string name, string description, Data defaultData = null, string reference_name = null, bool hidePort = false, bool isTypeEditable = false)
         {
             if (defaultData == null)
                 defaultData = new Data();
@@ -128,6 +128,7 @@ namespace PlasmaModding
 
             property.position = port.position;
             gestalt.properties.Add(property_dict_id, property);
+
             if (gestalt.agent.IsSubclassOf(typeof(CustomAgent)))
             {
                 if (!CustomAgent.properties.ContainsKey(gestalt.agent))
@@ -137,16 +138,20 @@ namespace PlasmaModding
                 }
                 CustomAgent.properties[gestalt.agent].Add(reference_name ?? name, property_dict_id);
             }
+
+            property.accessible = true;
+            property.configurable = true;
             property.defaultData = defaultData;
-            property.configurable = configurable;
             property.name = name;
             property.description = description;
             property.allowsAnyData = isTypeEditable;
-            port.dataType = datatype;
+            property.handler = 64;
+
+            port.dataType = defaultData.type;
             port.mappedProperty = property_dict_id;
             port.type = AgentGestalt.Port.Types.Property;
-            port.expectsData = expectsData;
             port.hidePort = hidePort;
+            port.expectsData = true;
             port.allowsAnyData = isTypeEditable;
 
             return port;
@@ -178,7 +183,7 @@ namespace PlasmaModding
             };
             Data selectionData = new Data(selection);
 
-            AgentGestalt.Port port = CreatePropertyPort(gestalt, name, description, Data.Types.Selection, true, selectionData, null, false, true);
+            AgentGestalt.Port port = CreatePropertyPort(gestalt, name, description, selectionData, null, true, false);
 
             return port;
         }
@@ -188,20 +193,24 @@ namespace PlasmaModding
             return l.Keys.OrderBy(b => b).Last();
         }
 
-        public static AgentGestalt.Port CreateOutputPort(AgentGestalt gestalt, string name, string description, Data.Types datatype = Data.Types.None, bool configurable = true, Data defaultData = null, string reference_name = null, bool isTypeEditable = false)
+        public static AgentGestalt.Port CreateOutputPort(AgentGestalt gestalt, string name, string description, Data defaultData = null, string reference_name = null, bool isTypeEditable = false)
         {
             if (defaultData == null)
                 defaultData = new Data();
+
             AgentGestalt.Port port = CreateGenericPort(gestalt, name, description);
             AgentGestalt.Property property = new AgentGestalt.Property();
+
             int property_dict_id = 1;
             try
             {
                 property_dict_id = GetHighestKey(gestalt.ports) + 1;
             }
             catch (Exception) { }
+
             property.position = port.position;
             gestalt.properties.Add(property_dict_id, property);
+
             if (gestalt.agent.IsSubclassOf(typeof(CustomAgent)))
             {
                 if (!CustomAgent.outputs.ContainsKey(gestalt.agent))
@@ -211,11 +220,11 @@ namespace PlasmaModding
                 }
                 CustomAgent.outputs[gestalt.agent].Add(reference_name ?? name, recent_port_dict_id);
             }
+
             property.defaultData = defaultData;
-            property.configurable = configurable;
             property.name = name;
             property.description = description;
-            port.dataType = datatype;
+            port.dataType = defaultData.type;
             port.injectedProperty = isTypeEditable ? property_dict_id : 0;
             port.type = AgentGestalt.Port.Types.Output;
             return port;
@@ -228,6 +237,20 @@ namespace PlasmaModding
                 return customCategories[name];
             customCategories.Add(name, (AgentCategoryEnum)(++highestCategoryId));
             return (AgentCategoryEnum)highestCategoryId;
+        }
+
+        // TODO : Not functionnal yet
+        public static void SendNotification(SketchNotifications.Levels level, SketchNotifications.Types type, AgentGestalt.Port port, string log)
+        {
+            SketchNotifications.Notification notification = new SketchNotifications.Notification();
+            notification.level = level;
+            notification.type = type;
+            notification.portId = port.position;
+            notification.propertyId = port.position;
+            notification.log = log;
+
+            
+            // Sketch.SendNotification(notification);
         }
 
         [HarmonyPatch(typeof(Resources), "LoadAll", new Type[] { typeof(string), typeof(Type) })]
@@ -427,41 +450,5 @@ namespace PlasmaModding
                 return false;
             }
         }
-
-        /*[HarmonyPatch(typeof(System.Enum), "GetNames")]
-        public class EnumNamePatch
-        {
-            public static void Postfix(System.Type enumType, ref string[] __result)
-            {
-                if (enumType == typeof(AgentCategoryEnum))
-                {
-                    string[] tabs = customCategories.Keys.ToArray();
-                    string[] names = new string[__result.Length + tabs.Length];
-                    __result.CopyTo(names, 0);
-                    tabs.CopyTo(names, __result.Length);
-                    __result = names;
-                }
-            }
-        }
-
-        [HarmonyPatch(typeof(System.Enum), "TryParseEnum")]
-        public class TryParseEnumPatch
-        {
-            public static void Postfix(System.Type enumType, string value, ref object parseResult, ref bool __result)
-            {
-                if (!__result && enumType == typeof(AgentCategoryEnum) && customCategories.ContainsKey(value))
-                {
-                    __result = true;
-                    System.Type EnumResult = typeof(System.Enum).GetNestedType("EnumResult", BindingFlags.NonPublic);
-                    MethodInfo Init = EnumResult.GetMethod("Init", BindingFlags.NonPublic | BindingFlags.Instance);
-
-                    FieldInfo parsedEnum = EnumResult.GetField("parsedEnum", BindingFlags.NonPublic | BindingFlags.Instance);
-                    var presult = System.Convert.ChangeType(System.Activator.CreateInstance(EnumResult), EnumResult);
-                    Init.Invoke(presult, new object[] { false });
-                    parsedEnum.SetValue(presult, customCategories[value]);
-                    parseResult = presult;
-                }
-            }
-        }*/
     }
 }

@@ -7,7 +7,7 @@ using static AgentGestalt;
 
 namespace PlasmaModding
 {
-    public static class ImagesManager
+    public static class ImageManager
     {
         private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("ImagesManager");
 

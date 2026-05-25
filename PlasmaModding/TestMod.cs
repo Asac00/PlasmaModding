@@ -39,16 +39,16 @@ namespace PlasmaModding
         {
             AgentGestalt agentGestalt1 = CustomNodeManager.CreateGestalt(typeof(TestAgent), "Test", "Test", AgentCategoryEnum.Misc);
             CustomNodeManager.CreateCommandPort(agentGestalt1, "execute", "", 1);
-            CustomNodeManager.CreatePropertyPort(agentGestalt1, "value", "The entry", TestMod.CustomDataTypeInit.type, false, CustomTypeManager.NewData<string>("New String", "test"), null, true);
-            CustomNodeManager.CreateOutputPort(agentGestalt1, "output", "The output", Data.Types.Text, false, null, null);
+            CustomNodeManager.CreatePropertyPort(agentGestalt1, "value", "The entry", new Data("test"), null, false, true);
+            CustomNodeManager.CreateOutputPort(agentGestalt1, "output", "The output", null, null, true);
             CustomNodeManager.CreateNode(agentGestalt1, "aefc0112-85fd-4c59-b259-e54bad24ffce");
             AgentGestalt agentGestalt2 = CustomNodeManager.CreateGestalt(typeof(InjectAgent), "Inject", "Inject", AgentCategoryEnum.Misc);
             CustomNodeManager.CreateCommandPort(agentGestalt2, "execute", "", 1);
-            CustomNodeManager.CreatePropertyPort(agentGestalt2, "value", "The entry", Data.Types.Text, true, new Data(""), null);
-            CustomNodeManager.CreatePropertyPort(agentGestalt2, "next", "Next", Data.Types.Text, true, new Data(""), null, false, true);
+            CustomNodeManager.CreatePropertyPort(agentGestalt2, "value", "The entry", new Data(""), null);
+            CustomNodeManager.CreatePropertyPort(agentGestalt2, "next", "Next", new Data(""), null, false, true);
             CustomNodeManager.CreateSelectionPort(agentGestalt2, "test", "", new List<string>() { "a", "b", "c" }, 0);
             CustomNodeManager.CreateSelectionPort(agentGestalt2, "test2", "", new List<string>() { "e", "f", "g" }, 0);
-            CustomNodeManager.CreateOutputPort(agentGestalt2, "output", "The output", TestMod.CustomDataTypeInit.type, false, null, null);
+            CustomNodeManager.CreateOutputPort(agentGestalt2, "output", "The output", CustomTypeManager.NewData("New String", ""), null);
             CustomNodeManager.CreateNode(agentGestalt2, "12942e63-3636-4d5f-87ae-0e0254d1d156");
         }
 
@@ -120,29 +120,31 @@ namespace PlasmaModding
     {
         public NewStringEditor()
         {
-            editorSize = new Vector2(700, 1200);
+            editorSize = new Vector2(400, 400);
             typeName = "New String";
             needConfirmation = false;
+            outputValue = "cos";
         }
 
         public override void BuildUI()
         {
-            inputField = GetOrCreateInputField("inputField", 500, 1000);
-            PlaceRelativeToEditorCenter("inputField", Vector2.zero);
-            AddListener(Apply, inputField.onValueChanged);
+            splitButton = GetOrCreateSplitButton("functions", functionsChoices, 200, 100);
+            PlaceRelativeToEditorCenter("functions", Vector2.zero);
+            AddListener(Apply, splitButton.onClick);
         }
 
         public override void ApplyValueToUI(string value)
         {
-            ChangeInputFieldContent("inputField", value);
+            ChangeSplitButtonCurrentValue("functions", outputValue);
         }
 
-        private void Apply(string value)
+        private void Apply()
         {
-            outputValue = value;
+            outputValue = GetSplitButtonCurrentValue("functions");
         }
 
-        TMP_InputField inputField;
+        Button splitButton;
+        List<string> functionsChoices = new List<string> { "cos", "sin", "tan" };
     }
 
     public class TestAgent : CustomAgent
