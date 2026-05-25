@@ -120,7 +120,7 @@ namespace PlasmaModding
     {
         public NewStringEditor()
         {
-            editorSize = new Vector2(400, 400);
+            editorSize = new Vector2(1000, 1000);
             typeName = "New String";
             needConfirmation = false;
             outputValue = "cos";
@@ -135,7 +135,8 @@ namespace PlasmaModding
 
         public override void ApplyValueToUI(string value)
         {
-            ChangeSplitButtonCurrentValue("functions", outputValue);
+            value = functionsChoices.Contains(value) ? value : "cos"; 
+            ChangeSplitButtonCurrentValue("functions", value);
         }
 
         private void Apply()

@@ -28,13 +28,13 @@ namespace PlasmaModding.CustomTypes
 
         public override void Setup(Agent agent, int propertyId, ProcessorUI processorUI = null, bool canClose = true)
         {
-            windowSize = new Vector2(editorSize.x + rightMarginWidth, editorSize.y + footerHeight + headerHeight);
+            base.Setup(agent, propertyId, processorUI, canClose);
+
+            editorWindowSize = new Vector2(editorSize.x + editorRightMargin, editorSize.y + editorFooterMargin + editorHeaderMargin);
 
             BuildUI();
 
-            base.Setup(agent, propertyId, processorUI, canClose);
-
-            processorUISize = windowSize;
+            processorUISize = editorWindowSize;
             showApplyMessage = (_processorUI == null || !_runtimeProperty.definition.isScript);
 
             outputValue = (T)CustomTypeManager.customTypesProperties[typeName].defaultValue;
@@ -867,14 +867,11 @@ namespace PlasmaModding.CustomTypes
                 Logger.LogError("There are no split button with the name : " + name);
                 return "";
             }
-
-            Logger.LogWarning(GetSplitButtonOptions(name)[splitButtonDropdowns[name].value]);
             return GetSplitButtonOptions(name)[splitButtonDropdowns[name].value];
         }
 
         public void ChangeSplitButtonCurrentValue(string name, int index)
         {
-            Logger.LogWarning(index);
             if (!splitButtonDropdowns.ContainsKey(name))
             {
                 Logger.LogError("There are no split button with the name : " + name);
@@ -1113,23 +1110,47 @@ namespace PlasmaModding.CustomTypes
                 elementSize.x += splitButtonArrowWidth;
             }
 
-            switch (side)
+            if (_processorUI != null)
             {
-                case EditorSide.Left:
-                    pos.x = margin;
-                    break;
+                switch (side)
+                {
+                    case EditorSide.Left:
+                        pos.x = margin;
+                        break;
 
-                case EditorSide.Right:
-                    pos.x = editorSize.x - elementSize.x - margin;
-                    break;
+                    case EditorSide.Right:
+                        pos.x = editorSize.x - elementSize.x - margin;
+                        break;
 
-                case EditorSide.Bottom:
-                    pos.y = margin;
-                    break;
+                    case EditorSide.Bottom:
+                        pos.y = margin;
+                        break;
 
-                case EditorSide.Top:
-                    pos.y = editorSize.y - elementSize.y - margin;
-                    break;
+                    case EditorSide.Top:
+                        pos.y = editorSize.y - elementSize.y - margin;
+                        break;
+                }
+            }
+            else
+            {
+                switch (side)
+                {
+                    case EditorSide.Left:
+                        pos.x = margin + contentLeftMargin;
+                        break;
+
+                    case EditorSide.Right:
+                        pos.x = contentWindowSize.x - elementSize.x - margin;
+                        break;
+
+                    case EditorSide.Bottom:
+                        pos.y = margin + contentFooterMargin;
+                        break;
+
+                    case EditorSide.Top:
+                        pos.y = contentWindowSize.y - elementSize.y - margin;
+                        break;
+                }
             }
 
             element.anchoredPosition = pos;
@@ -1148,10 +1169,22 @@ namespace PlasmaModding.CustomTypes
                 elementSize.x += splitButtonArrowWidth;
             }
 
-            Vector2 centerPos = new Vector2(
-                (editorSize.x - elementSize.x) * 0.5f,
-                (editorSize.y - elementSize.y) * 0.5f
-            );
+            Vector2 centerPos;
+
+            if (_processorUI != null)
+            {
+                centerPos = new Vector2(
+                    (editorSize.x - elementSize.x) * 0.5f,
+                    (editorSize.y - elementSize.y) * 0.5f
+                );
+            }
+            else
+            {
+                centerPos = new Vector2(
+                    (contentWindowSize.x - contentLeftMargin - elementSize.x) * 0.5f + contentLeftMargin,
+                    (contentWindowSize.y - contentFooterMargin - elementSize.y) * 0.5f + contentFooterMargin
+                );
+            }
 
             element.anchoredPosition = centerPos + offset;
         }
@@ -1197,10 +1230,15 @@ namespace PlasmaModding.CustomTypes
         private Dictionary<string, TMP_Dropdown> splitButtonDropdowns = new Dictionary<string, TMP_Dropdown>();
 
         public Vector2 editorSize;
-        private Vector2 windowSize;
-        private float headerHeight = 150;
-        private float footerHeight = 80;
-        private float rightMarginWidth = 50;
+        private Vector2 editorWindowSize;
+        private float editorHeaderMargin = 150;
+        private float editorFooterMargin = 80;
+        private float editorRightMargin = 50;
+
+        private Vector2 contentWindowSize = new Vector2(850, 900);
+        private float contentFooterMargin = 50;
+        private float contentLeftMargin = 250;
+
         private float splitButtonArrowWidth = 75;
 
         public string typeName;
